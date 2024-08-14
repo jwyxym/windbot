@@ -1,4 +1,4 @@
-using YGOSharp.OCGWrapper;
+﻿using YGOSharp.OCGWrapper;
 using YGOSharp.OCGWrapper.Enums;
 using System.Collections.Generic;
 using System.Linq;
@@ -212,6 +212,7 @@ namespace WindBot.Game.AI.Decks
             activate_Genius = false;
             activate_Sarutobi = false;
             to_deck = false;
+            base.OnNewTurn();
         }
         public override bool OnSelectHand()
         {
@@ -344,10 +345,12 @@ namespace WindBot.Game.AI.Decks
         }
         private bool FunctionInHand()
         {
+            if (DefaultCheckWhetherCardIsNegated(Card)) return false;
             return Duel.LastChainPlayer == 1;
         }
         private bool LockBirdFunction()
         {
+            if (DefaultCheckWhetherCardIsNegated(Card)) return false;
             if (Duel.Player == 0 || activate_LockBird)
             {
                 return false;
@@ -359,6 +362,7 @@ namespace WindBot.Game.AI.Decks
         {
             if (Card.Location == CardLocation.Hand)
             {
+                if (DefaultCheckWhetherCardIsNegated(Card)) return false;
                 int targetid = -1;
                 List<ClientCard> cards = GetZoneCards(CardLocation.MonsterZone, Bot).Where(card => card != null && card.IsFaceup()).ToList();
                 if (!(Bot.HasInHand(CardId.Wakaushi) || Bot.HasInMonstersZone(CardId.Wakaushi) || Bot.HasInSpellZone(CardId.Wakaushi)) && !activate_Wakaushi)
@@ -1021,7 +1025,7 @@ namespace WindBot.Game.AI.Decks
                 materials.Add(Bot.MonsterZone[6]);
                 linkchk = true;
             }
-            else if (Bot.MonsterZone[5] != null && Bot.MonsterZone[5].Controller == 0 && Bot.MonsterZone[5].Id != CardId.Scarecrow && !FinalCards(Bot.MonsterZone[6].Id))
+            else if (Bot.MonsterZone[5] != null && Bot.MonsterZone[5].Controller == 0 && Bot.MonsterZone[5].Id != CardId.Scarecrow && !FinalCards(Bot.MonsterZone[5].Id))
             {
                 materials.Add(Bot.MonsterZone[5]);
                 linkchk = true;
