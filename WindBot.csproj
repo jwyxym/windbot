@@ -69,6 +69,7 @@
     <Compile Include="Game\AI\DeckAttribute.cs" />
     <Compile Include="Game\AI\DecksManager.cs" />
     <Compile Include="Game\AI\Decks\MalissExecutor.cs" />
+    <Compile Include="Game\AI\Decks\NekoExecutor.cs" />
     <Compile Include="Game\AI\Decks\RyzealExecutor.cs" />
     <Compile Include="Game\AI\Decks\AlbazExecutor.cs" />
     <Compile Include="Game\AI\Decks\AltergeistExecutor.cs" />
