@@ -173,8 +173,22 @@ namespace WindBot.Game.AI.Decks
         }
         public override CardPosition OnSelectPosition(int cardId, IList<CardPosition> positions)
         {
-            if (GoToBattlePhase())
+            if (!GoToBattlePhase() || Duel.Turn < 2)
                 return CardPosition.FaceUpDefence;
+            if (Enemy.GetMonsterCount() == 0)
+                return CardPosition.FaceUpAttack;
+            if (cardId == CardId.Herald_of_the_Arc_Light)
+                return CardPosition.FaceUpDefence;
+            if (Bot.HasInSpellZone(CardId.Neko_Field) || (Bot.HasInHand(CardId.Neko_Field) && ActivateNekoField()
+                && new[]
+                    {
+                        CardId.Neko_Cake,
+                        CardId.Neko_Cookie,
+                        CardId.Neko_Marshmallow,
+                        CardId.Neko_Lollipop
+                    }.Contains(cardId))
+            )
+                return CardPosition.FaceUpAttack;
             return base.OnSelectPosition(cardId, positions);
         }
         public override int OnSelectOption(IList<int> options)
@@ -218,6 +232,21 @@ namespace WindBot.Game.AI.Decks
                     if ((Zones.z5 & available) > 0) return Zones.z5;
                 }
                 else if (cardId == CardId.Neko_Link)
+                {
+                    if ((Zones.z6 & available) > 0 && Bot.MonsterZone[3] == null) return Zones.z6;
+                    if ((Zones.z5 & available) > 0 && Bot.MonsterZone[1] == null) return Zones.z5;
+                }
+                int[] cards = new[]
+                    {
+                        CardId.Neko_Sycro_Cake,
+                        CardId.Neko_Sycro_Cookie,
+                        CardId.Neko_Sycro_Lollipop
+                    };
+                if (Duel.CurrentChain.Any(i => i.Controller == 0 && i.IsCode())
+                    && Duel.GetCurrentSolvingChainCard() != null
+                    && !Duel.GetCurrentSolvingChainCard().IsCode(cards)
+                    && Bot.GetMonstersInMainZone().Count() > 3
+                )
                 {
                     if ((Zones.z6 & available) > 0 && Bot.MonsterZone[3] == null) return Zones.z6;
                     if ((Zones.z5 & available) > 0 && Bot.MonsterZone[1] == null) return Zones.z5;
@@ -656,7 +685,13 @@ namespace WindBot.Game.AI.Decks
             };
             int ct = Bot.GetMonsters().Count(i => i.Level == 1);
             return Count.CheckActivate(Card.Id) && (Bot.HasInMonstersZone(cards) || Bot.HasInGraveyard(cards))
-                && (ct > 2 || (ct > 1 && Bot.HasInMonstersZone(CardId.Neko_Link)));
+                && (ct > 2
+                    || (ct > 1 && Bot.HasInMonstersZone(CardId.Neko_Link))
+                    || (Bot.Hand.Any(i => Count.CheckSpSummon(i.Id)) && (
+                        Bot.GetMonsters().Any(i => i.Level == 1)
+                        || Bot.GetMonsters().Count(i => i.Level == 2 && i.HasType(CardType.Synchro)) > 1
+                    ))
+                );
         }
         private bool ActivateShamisenSamsaraSorrowcat()
         {
@@ -726,7 +761,15 @@ namespace WindBot.Game.AI.Decks
         }
         private bool SPLinkuriboh()
         {
-            return Bot.GetMonsters().Count(i => i.Level == 1) > 1;
+            int[] cards = new[]
+            {
+                CardId.Neko_Sycro_Cake,
+                CardId.Neko_Sycro_Cookie,
+                CardId.Neko_Sycro_Lollipop
+            };
+            return Bot.GetMonsters().Count(i => i.Level == 1) > 1 || (
+                Bot.HasInMonstersZone(CardId.Neko_Link) && (Bot.HasInMonstersZone(cards) || Bot.GetMonsters().Any(i => i.Level == 1))
+            );
         }
     }
 }
