@@ -162,9 +162,11 @@ jobs:
       matrix:
         include:
           - name: x64
+            abi: x86_64
             rid: linux-bionic-x64
             clang: x86_64-linux-android24-clang
           - name: arm64
+            abi: arm64-v8a
             rid: linux-bionic-arm64
             clang: aarch64-linux-android24-clang
 
@@ -191,6 +193,7 @@ jobs:
             -r ${{ matrix.rid }} \
             --self-contained true \
             -p:PublishAot=true \
+            -p:PublishAotUsingRuntimePack=true \
             -p:NativeLib=Shared \
             -p:OutputType=Library \
             -p:StripSymbols=true \
@@ -198,18 +201,18 @@ jobs:
             -p:DebugSymbols=false \
             -p:SysRoot="$android_toolchain/sysroot" \
             -p:CppCompilerAndLinker="$android_toolchain/bin/${{ matrix.clang }}" \
-            -o artifacts/native/android-${{ matrix.name }}
+            -o artifacts/native/android-${{ matrix.abi }}
 
       - name: Keep single native library
         run: |
-          mkdir -p artifacts/single/android-${{ matrix.name }}
-          find artifacts/native/android-${{ matrix.name }} -maxdepth 3 -type f -print
-          library="$(find artifacts/native/android-${{ matrix.name }} -maxdepth 3 -type f -name '*.so' | head -n 1)"
+          mkdir -p artifacts/single/android-${{ matrix.abi }}
+          find artifacts/native/android-${{ matrix.abi }} -maxdepth 3 -type f -print
+          library="$(find artifacts/native/android-${{ matrix.abi }} -maxdepth 3 -type f -name '*.so' | head -n 1)"
           test -n "$library"
-          cp "$library" artifacts/single/android-${{ matrix.name }}/"$(basename "$library")"
+          cp "$library" artifacts/single/android-${{ matrix.abi }}/"$(basename "$library")"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windbot-android-${{ matrix.name }}
-          path: artifacts/single/android-${{ matrix.name }}/*
+          name: windbot-android-${{ matrix.abi }}
+          path: artifacts/single/android-${{ matrix.abi }}/*
