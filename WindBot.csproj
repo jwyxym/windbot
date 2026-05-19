@@ -26,6 +26,10 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.5" />
   </ItemGroup>
 
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('linux-bionic'))">
+    <LinkerArg Include="-Wl,--undefined-version" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Update="Decks\*.ydk" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Dialogs\*.json" CopyToOutputDirectory="PreserveNewest" />
