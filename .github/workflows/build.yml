@@ -226,7 +226,7 @@ jobs:
             -p:PublishAotUsingRuntimePack=true \
             -p:NativeLib=Shared \
             -p:OutputType=Library \
-            -p:StripSymbols=true \
+            -p:StripSymbols=false \
             -p:DebugType=none \
             -p:DebugSymbols=false \
             -p:SysRoot="$android_toolchain/sysroot" \
