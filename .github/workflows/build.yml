@@ -30,6 +30,7 @@ jobs:
         run: >
           dotnet publish WindBot.csproj
           -c Release
+          -f net8.0
           -r ${{ matrix.rid }}
           --self-contained true
           -p:PublishAot=true
@@ -83,6 +84,7 @@ jobs:
         run: >
           dotnet publish WindBot.csproj
           -c Release
+          -f net8.0
           -r ${{ matrix.rid }}
           --self-contained true
           -p:PublishAot=true
@@ -130,6 +132,7 @@ jobs:
         run: >
           dotnet publish WindBot.csproj
           -c Release
+          -f net8.0
           -r ${{ matrix.rid }}
           --self-contained true
           -p:PublishAot=true
@@ -218,6 +221,7 @@ jobs:
             -f ${{ matrix.target-framework }} \
             -r ${{ matrix.rid }} \
             --self-contained true \
+            -p:IncludeNet10=true \
             -p:PublishAot=true \
             -p:PublishAotUsingRuntimePack=true \
             -p:NativeLib=Shared \
