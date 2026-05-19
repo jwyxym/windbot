@@ -41,20 +41,11 @@ jobs:
           -p:DebugSymbols=false
           -o artifacts/native/${{ matrix.rid }}
 
-      - name: Keep single native library
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force artifacts/single/${{ matrix.rid }} | Out-Null
-          Get-ChildItem -Recurse artifacts/native/${{ matrix.rid }}
-          $library = Get-ChildItem -Recurse artifacts/native/${{ matrix.rid }} -Filter *.dll | Where-Object { $_.Name -eq 'WindBot.dll' -or $_.Name -eq 'windbot.dll' } | Select-Object -First 1
-          if ($null -eq $library) { throw "Native library was not found." }
-          Copy-Item $library.FullName artifacts/single/${{ matrix.rid }}/$($library.Name)
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windbot-${{ matrix.rid }}
-          path: artifacts/single/${{ matrix.rid }}/*
+          path: artifacts/native/${{ matrix.rid }}/*
 
   linux:
     name: Linux ${{ matrix.rid }}
@@ -95,19 +86,11 @@ jobs:
           -p:DebugSymbols=false
           -o artifacts/native/${{ matrix.rid }}
 
-      - name: Keep single native library
-        run: |
-          mkdir -p artifacts/single/${{ matrix.rid }}
-          find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -print
-          library="$(find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -name '*.so' | head -n 1)"
-          test -n "$library"
-          cp "$library" artifacts/single/${{ matrix.rid }}/"$(basename "$library")"
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windbot-${{ matrix.rid }}
-          path: artifacts/single/${{ matrix.rid }}/*
+          path: artifacts/native/${{ matrix.rid }}/*
 
   macos:
     name: macOS ${{ matrix.rid }}
@@ -143,19 +126,11 @@ jobs:
           -p:DebugSymbols=false
           -o artifacts/native/${{ matrix.rid }}
 
-      - name: Keep single native library
-        run: |
-          mkdir -p artifacts/single/${{ matrix.rid }}
-          find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -print
-          library="$(find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -name '*.dylib' | head -n 1)"
-          test -n "$library"
-          cp "$library" artifacts/single/${{ matrix.rid }}/"$(basename "$library")"
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windbot-${{ matrix.rid }}
-          path: artifacts/single/${{ matrix.rid }}/*
+          path: artifacts/native/${{ matrix.rid }}/*
 
   android:
     name: Android ${{ matrix.name }}
@@ -233,18 +208,9 @@ jobs:
             -p:CppCompilerAndLinker="$android_toolchain/bin/${{ matrix.clang }}" \
             -o artifacts/native/android-${{ matrix.abi }}
 
-      - name: Keep single native library
-        if: matrix.rid != 'unsupported'
-        run: |
-          mkdir -p artifacts/single/android-${{ matrix.abi }}
-          find artifacts/native/android-${{ matrix.abi }} -maxdepth 3 -type f -print
-          library="$(find artifacts/native/android-${{ matrix.abi }} -maxdepth 3 -type f -name '*.so' | head -n 1)"
-          test -n "$library"
-          cp "$library" artifacts/single/android-${{ matrix.abi }}/"$(basename "$library")"
-
       - name: Upload artifact
         if: matrix.rid != 'unsupported'
         uses: actions/upload-artifact@v4
         with:
           name: windbot-android-${{ matrix.abi }}
-          path: artifacts/single/android-${{ matrix.abi }}/*
+          path: artifacts/native/android-${{ matrix.abi }}/*
