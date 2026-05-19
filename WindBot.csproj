@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>WindBot</RootNamespace>
     <AssemblyName>WindBot</AssemblyName>
-    <StartupObject>WindBot.Program</StartupObject>
+    <StartupObject Condition="'$(OutputType)' != 'Library'">WindBot.Program</StartupObject>
     <ApplicationIcon>WindBot.ico</ApplicationIcon>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>

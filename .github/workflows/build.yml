@@ -1,0 +1,198 @@
+name: Native AOT Libraries
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "ygopro3" ]
+
+jobs:
+  windows:
+    name: Windows ${{ matrix.rid }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        rid:
+          - win-x64
+          - win-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish Native AOT shared library
+        shell: pwsh
+        run: >
+          dotnet publish WindBot.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained true
+          -p:PublishAot=true
+          -p:PublishSingleFile=true
+          -p:NativeLib=Shared
+          -p:OutputType=Library
+          -p:StripSymbols=true
+          -p:DebugType=none
+          -p:DebugSymbols=false
+          -o artifacts/native/${{ matrix.rid }}
+
+      - name: Keep single native library
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts/single/${{ matrix.rid }} | Out-Null
+          Copy-Item artifacts/native/${{ matrix.rid }}/WindBot.dll artifacts/single/${{ matrix.rid }}/WindBot.dll
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windbot-${{ matrix.rid }}
+          path: artifacts/single/${{ matrix.rid }}/WindBot.dll
+
+  linux:
+    name: Linux ${{ matrix.rid }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        rid:
+          - linux-x64
+          - linux-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Native AOT prerequisites
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish Native AOT shared library
+        run: >
+          dotnet publish WindBot.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained true
+          -p:PublishAot=true
+          -p:PublishSingleFile=true
+          -p:NativeLib=Shared
+          -p:OutputType=Library
+          -p:StripSymbols=true
+          -p:DebugType=none
+          -p:DebugSymbols=false
+          -o artifacts/native/${{ matrix.rid }}
+
+      - name: Keep single native library
+        run: |
+          mkdir -p artifacts/single/${{ matrix.rid }}
+          cp artifacts/native/${{ matrix.rid }}/libWindBot.so artifacts/single/${{ matrix.rid }}/libWindBot.so
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windbot-${{ matrix.rid }}
+          path: artifacts/single/${{ matrix.rid }}/libWindBot.so
+
+  macos:
+    name: macOS ${{ matrix.rid }}
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        rid:
+          - osx-x64
+          - osx-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish Native AOT shared library
+        run: >
+          dotnet publish WindBot.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained true
+          -p:PublishAot=true
+          -p:PublishSingleFile=true
+          -p:NativeLib=Shared
+          -p:OutputType=Library
+          -p:StripSymbols=true
+          -p:DebugType=none
+          -p:DebugSymbols=false
+          -o artifacts/native/${{ matrix.rid }}
+
+      - name: Keep single native library
+        run: |
+          mkdir -p artifacts/single/${{ matrix.rid }}
+          cp artifacts/native/${{ matrix.rid }}/libWindBot.dylib artifacts/single/${{ matrix.rid }}/libWindBot.dylib
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windbot-${{ matrix.rid }}
+          path: artifacts/single/${{ matrix.rid }}/libWindBot.dylib
+
+  android:
+    name: Android ${{ matrix.rid }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        rid:
+          - android-x64
+          - android-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Native AOT prerequisites
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install Android workload
+        run: dotnet workload install android
+
+      - name: Publish Native AOT shared library
+        run: >
+          dotnet publish WindBot.csproj
+          -c Release
+          -r ${{ matrix.rid }}
+          --self-contained true
+          -p:PublishAot=true
+          -p:PublishSingleFile=true
+          -p:NativeLib=Shared
+          -p:OutputType=Library
+          -p:StripSymbols=true
+          -p:DebugType=none
+          -p:DebugSymbols=false
+          -o artifacts/native/${{ matrix.rid }}
+
+      - name: Keep single native library
+        run: |
+          mkdir -p artifacts/single/${{ matrix.rid }}
+          cp artifacts/native/${{ matrix.rid }}/libWindBot.so artifacts/single/${{ matrix.rid }}/libWindBot.so
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windbot-${{ matrix.rid }}
+          path: artifacts/single/${{ matrix.rid }}/libWindBot.so
