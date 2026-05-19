@@ -57,13 +57,15 @@ jobs:
 
   linux:
     name: Linux ${{ matrix.rid }}
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        rid:
-          - linux-x64
-          - linux-arm64
+        include:
+          - rid: linux-x64
+            runner: ubuntu-22.04
+          - rid: linux-arm64
+            runner: ubuntu-24.04-arm
 
     steps:
       - name: Checkout
@@ -153,14 +155,18 @@ jobs:
           path: artifacts/single/${{ matrix.rid }}/*
 
   android:
-    name: Android ${{ matrix.rid }}
+    name: Android ${{ matrix.name }}
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
-        rid:
-          - android-x64
-          - android-arm64
+        include:
+          - name: x64
+            rid: linux-bionic-x64
+            clang: x86_64-linux-android24-clang
+          - name: arm64
+            rid: linux-bionic-arm64
+            clang: aarch64-linux-android24-clang
 
     steps:
       - name: Checkout
@@ -178,29 +184,32 @@ jobs:
         run: dotnet workload install android
 
       - name: Publish Native AOT shared library
-        run: >
-          dotnet publish WindBot.csproj
-          -c Release
-          -r ${{ matrix.rid }}
-          --self-contained true
-          -p:PublishAot=true
-          -p:NativeLib=Shared
-          -p:OutputType=Library
-          -p:StripSymbols=true
-          -p:DebugType=none
-          -p:DebugSymbols=false
-          -o artifacts/native/${{ matrix.rid }}
+        run: |
+          android_toolchain="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          dotnet publish WindBot.csproj \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishAot=true \
+            -p:NativeLib=Shared \
+            -p:OutputType=Library \
+            -p:StripSymbols=true \
+            -p:DebugType=none \
+            -p:DebugSymbols=false \
+            -p:SysRoot="$android_toolchain/sysroot" \
+            -p:CppCompilerAndLinker="$android_toolchain/bin/${{ matrix.clang }}" \
+            -o artifacts/native/android-${{ matrix.name }}
 
       - name: Keep single native library
         run: |
-          mkdir -p artifacts/single/${{ matrix.rid }}
-          find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -print
-          library="$(find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -name '*.so' | head -n 1)"
+          mkdir -p artifacts/single/android-${{ matrix.name }}
+          find artifacts/native/android-${{ matrix.name }} -maxdepth 3 -type f -print
+          library="$(find artifacts/native/android-${{ matrix.name }} -maxdepth 3 -type f -name '*.so' | head -n 1)"
           test -n "$library"
-          cp "$library" artifacts/single/${{ matrix.rid }}/"$(basename "$library")"
+          cp "$library" artifacts/single/android-${{ matrix.name }}/"$(basename "$library")"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windbot-${{ matrix.rid }}
-          path: artifacts/single/${{ matrix.rid }}/*
+          name: windbot-android-${{ matrix.name }}
+          path: artifacts/single/android-${{ matrix.name }}/*
