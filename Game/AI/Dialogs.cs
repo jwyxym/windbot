@@ -1,45 +1,35 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace WindBot.Game.AI
 {
-    [DataContract]
     public class DialogsData
     {
-        [DataMember]
         public string[] welcome { get; set; }
-        [DataMember]
         public string[] deckerror { get; set; }
-        [DataMember]
         public string[] duelstart { get; set; }
-        [DataMember]
         public string[] newturn { get; set; }
-        [DataMember]
         public string[] endturn { get; set; }
-        [DataMember]
         public string[] directattack { get; set; }
-        [DataMember]
         public string[] attack { get; set; }
-        [DataMember]
         public string[] ondirectattack { get; set; }
-        [DataMember]
         public string facedownmonstername { get; set; }
-        [DataMember]
         public string[] activate { get; set; }
-        [DataMember]
         public string[] summon { get; set; }
-        [DataMember]
         public string[] setmonster { get; set; }
-        [DataMember]
         public string[] chaining { get; set; }
-        [DataMember]
         public string[] surrender { get; set; }
-        [DataMember]
         public string[] custom { get; set; }
     }
+
+    [JsonSerializable(typeof(DialogsData))]
+    public partial class DialogsJsonContext : JsonSerializerContext
+    {
+    }
+
     public class Dialogs
     {
         private GameClient _game;
@@ -63,11 +53,10 @@ namespace WindBot.Game.AI
         public Dialogs(GameClient game)
         {
             _game = game;
-            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(DialogsData));
             string dialogfilename = game.Dialog;
             using (FileStream fs = Program.ReadFile("Dialogs", dialogfilename, "json"))
             {
-                DialogsData data = (DialogsData)serializer.ReadObject(fs);
+                DialogsData data = JsonSerializer.Deserialize(fs, DialogsJsonContext.Default.DialogsData);
                 _welcome = data.welcome;
                 _deckerror = data.deckerror;
                 _duelstart = data.duelstart;

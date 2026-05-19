@@ -1,9 +1,9 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Net;
-using System.Web;
-using System.Diagnostics;
 using WindBot.Game;
 using WindBot.Game.AI;
 using YGOSharp.OCGWrapper;
@@ -98,60 +98,60 @@ namespace WindBot
                 {
                     try
                     {
-                    HttpListenerContext ctx = MainServer.GetContext();
-                    var queryParams = HttpUtility.ParseQueryString(ctx.Request.Url.Query);
+                        HttpListenerContext ctx = MainServer.GetContext();
+                        Dictionary<string, string> query = ParseQueryString(ctx.Request.Url.Query);
 
-                    WindBotInfo Info = new WindBotInfo();
-                    Info.Name = queryParams.Get("name");
-                    Info.Deck = queryParams.Get("deck");
-                    Info.Host = queryParams.Get("host");
-                    string port = queryParams.Get("port");
-                    if (port != null)
-                        Info.Port = Int32.Parse(port);
-                    string deckfile = queryParams.Get("deckfile");
-                    if (deckfile != null)
-                        Info.DeckFile = deckfile;
-                    string dialog = queryParams.Get("dialog");
-                    if (dialog != null)
-                        Info.Dialog = dialog;
-                    string version = queryParams.Get("version");
-                    if (version != null)
-                        Info.Version = Int16.Parse(version);
-                    string password = queryParams.Get("password");
-                    if (password != null)
-                        Info.HostInfo = password;
-                    string hand = queryParams.Get("hand");
-                    if (hand != null)
-                        Info.Hand = Int32.Parse(hand);
-                    string debug = queryParams.Get("debug");
-                    if (debug != null)
-                        Info.Debug= bool.Parse(debug);
-                    string chat = queryParams.Get("chat");
-                    if (chat != null)
-                        Info.Chat = bool.Parse(chat);
+                        WindBotInfo Info = new WindBotInfo();
+                        Info.Name = GetQueryValue(query, "name");
+                        Info.Deck = GetQueryValue(query, "deck");
+                        Info.Host = GetQueryValue(query, "host");
+                        string port = GetQueryValue(query, "port");
+                        if (port != null)
+                            Info.Port = Int32.Parse(port);
+                        string deckfile = GetQueryValue(query, "deckfile");
+                        if (deckfile != null)
+                            Info.DeckFile = deckfile;
+                        string dialog = GetQueryValue(query, "dialog");
+                        if (dialog != null)
+                            Info.Dialog = dialog;
+                        string version = GetQueryValue(query, "version");
+                        if (version != null)
+                            Info.Version = Int16.Parse(version);
+                        string password = GetQueryValue(query, "password");
+                        if (password != null)
+                            Info.HostInfo = password;
+                        string hand = GetQueryValue(query, "hand");
+                        if (hand != null)
+                            Info.Hand = Int32.Parse(hand);
+                        string debug = GetQueryValue(query, "debug");
+                        if (debug != null)
+                            Info.Debug= bool.Parse(debug);
+                        string chat = GetQueryValue(query, "chat");
+                        if (chat != null)
+                            Info.Chat = bool.Parse(chat);
 
-                    if (Info.Name == null || Info.Host == null || port == null)
-                    {
-                        ctx.Response.StatusCode = 400;
-                        ctx.Response.Close();
-                    }
-                    else
-                    {
-                        ctx.Response.StatusCode = 200;
-                        try
+                        if (Info.Name == null || Info.Host == null || port == null)
                         {
-                            Thread workThread = new Thread(new ParameterizedThreadStart(Run));
-                            workThread.Start(Info);
+                            ctx.Response.StatusCode = 400;
+                            ctx.Response.Close();
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            if (Debugger.IsAttached)
-                                throw;
-                            Logger.WriteErrorLine("Start Thread Error: " + ex);
-                            ctx.Response.StatusCode = 500;
+                            ctx.Response.StatusCode = 200;
+                            try
+                            {
+                                Thread workThread = new Thread(new ParameterizedThreadStart(Run));
+                                workThread.Start(Info);
+                            }
+                            catch (Exception ex)
+                            {
+                                if (Debugger.IsAttached)
+                                    throw;
+                                Logger.WriteErrorLine("Start Thread Error: " + ex);
+                                ctx.Response.StatusCode = 500;
+                            }
+                            ctx.Response.Close();
                         }
-                        ctx.Response.Close();
-                    }
                     }
                     catch (Exception ex)
                     {
@@ -161,6 +161,39 @@ namespace WindBot
                     }
                 }
             }
+        }
+
+        private static Dictionary<string, string> ParseQueryString(string query)
+        {
+            Dictionary<string, string> values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (String.IsNullOrEmpty(query))
+                return values;
+
+            int start = query[0] == '?' ? 1 : 0;
+            string[] pairs = query.Substring(start).Split('&');
+            foreach (string pair in pairs)
+            {
+                if (String.IsNullOrEmpty(pair))
+                    continue;
+
+                int separator = pair.IndexOf('=');
+                string rawKey = separator >= 0 ? pair.Substring(0, separator) : pair;
+                string rawValue = separator >= 0 ? pair.Substring(separator + 1) : String.Empty;
+                values[UrlDecode(rawKey)] = UrlDecode(rawValue);
+            }
+
+            return values;
+        }
+
+        private static string GetQueryValue(Dictionary<string, string> query, string key)
+        {
+            string value;
+            return query.TryGetValue(key, out value) ? value : null;
+        }
+
+        private static string UrlDecode(string value)
+        {
+            return Uri.UnescapeDataString(value.Replace("+", " "));
         }
 
         private static void Run(object o)
@@ -177,11 +210,11 @@ namespace WindBot
                     try
                     {
                         client.Tick();
-                        #if DEBUG
-                            Thread.Sleep(1);
-                        #else
-                            Thread.Sleep(30);
-                        #endif
+#if DEBUG
+                        Thread.Sleep(1);
+#else
+                        Thread.Sleep(30);
+#endif
                     }
                     catch (Exception ex)
                     {
