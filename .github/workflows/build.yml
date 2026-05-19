@@ -44,13 +44,16 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force artifacts/single/${{ matrix.rid }} | Out-Null
-          Copy-Item artifacts/native/${{ matrix.rid }}/WindBot.dll artifacts/single/${{ matrix.rid }}/WindBot.dll
+          Get-ChildItem -Recurse artifacts/native/${{ matrix.rid }}
+          $library = Get-ChildItem -Recurse artifacts/native/${{ matrix.rid }} -Filter *.dll | Where-Object { $_.Name -eq 'WindBot.dll' -or $_.Name -eq 'windbot.dll' } | Select-Object -First 1
+          if ($null -eq $library) { throw "Native library was not found." }
+          Copy-Item $library.FullName artifacts/single/${{ matrix.rid }}/$($library.Name)
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windbot-${{ matrix.rid }}
-          path: artifacts/single/${{ matrix.rid }}/WindBot.dll
+          path: artifacts/single/${{ matrix.rid }}/*
 
   linux:
     name: Linux ${{ matrix.rid }}
@@ -91,13 +94,16 @@ jobs:
       - name: Keep single native library
         run: |
           mkdir -p artifacts/single/${{ matrix.rid }}
-          cp artifacts/native/${{ matrix.rid }}/libWindBot.so artifacts/single/${{ matrix.rid }}/libWindBot.so
+          find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -print
+          library="$(find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -name '*.so' | head -n 1)"
+          test -n "$library"
+          cp "$library" artifacts/single/${{ matrix.rid }}/"$(basename "$library")"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windbot-${{ matrix.rid }}
-          path: artifacts/single/${{ matrix.rid }}/libWindBot.so
+          path: artifacts/single/${{ matrix.rid }}/*
 
   macos:
     name: macOS ${{ matrix.rid }}
@@ -135,13 +141,16 @@ jobs:
       - name: Keep single native library
         run: |
           mkdir -p artifacts/single/${{ matrix.rid }}
-          cp artifacts/native/${{ matrix.rid }}/libWindBot.dylib artifacts/single/${{ matrix.rid }}/libWindBot.dylib
+          find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -print
+          library="$(find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -name '*.dylib' | head -n 1)"
+          test -n "$library"
+          cp "$library" artifacts/single/${{ matrix.rid }}/"$(basename "$library")"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windbot-${{ matrix.rid }}
-          path: artifacts/single/${{ matrix.rid }}/libWindBot.dylib
+          path: artifacts/single/${{ matrix.rid }}/*
 
   android:
     name: Android ${{ matrix.rid }}
@@ -185,10 +194,13 @@ jobs:
       - name: Keep single native library
         run: |
           mkdir -p artifacts/single/${{ matrix.rid }}
-          cp artifacts/native/${{ matrix.rid }}/libWindBot.so artifacts/single/${{ matrix.rid }}/libWindBot.so
+          find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -print
+          library="$(find artifacts/native/${{ matrix.rid }} -maxdepth 3 -type f -name '*.so' | head -n 1)"
+          test -n "$library"
+          cp "$library" artifacts/single/${{ matrix.rid }}/"$(basename "$library")"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windbot-${{ matrix.rid }}
-          path: artifacts/single/${{ matrix.rid }}/libWindBot.so
+          path: artifacts/single/${{ matrix.rid }}/*
