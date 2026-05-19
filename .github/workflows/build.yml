@@ -33,7 +33,6 @@ jobs:
           -r ${{ matrix.rid }}
           --self-contained true
           -p:PublishAot=true
-          -p:PublishSingleFile=true
           -p:NativeLib=Shared
           -p:OutputType=Library
           -p:StripSymbols=true
@@ -82,7 +81,6 @@ jobs:
           -r ${{ matrix.rid }}
           --self-contained true
           -p:PublishAot=true
-          -p:PublishSingleFile=true
           -p:NativeLib=Shared
           -p:OutputType=Library
           -p:StripSymbols=true
@@ -127,7 +125,6 @@ jobs:
           -r ${{ matrix.rid }}
           --self-contained true
           -p:PublishAot=true
-          -p:PublishSingleFile=true
           -p:NativeLib=Shared
           -p:OutputType=Library
           -p:StripSymbols=true
@@ -178,7 +175,6 @@ jobs:
           -r ${{ matrix.rid }}
           --self-contained true
           -p:PublishAot=true
-          -p:PublishSingleFile=true
           -p:NativeLib=Shared
           -p:OutputType=Library
           -p:StripSymbols=true
