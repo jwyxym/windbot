@@ -30,8 +30,10 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Write DeckData.cs
-        run: python .ci/gen_deckdata.py
+      - name: Write cs
+        run: |
+          python .ci/gen_deckdata.py
+          python .ci/gen_dialogdata.py
 
       - name: Publish Native AOT shared library
         shell: pwsh
@@ -52,7 +54,9 @@ jobs:
       - name: zip artifact
         run: |
           choco install zip
-          cd artifacts/native
+          cd artifacts/native/${{ matrix.rid }}
+          rm -r *.config
+          cd ..
           zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
 
       - name: Upload artifact
@@ -90,8 +94,10 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Write DeckData.cs
-        run: python .ci/gen_deckdata.py
+      - name: Write cs
+        run: |
+          python .ci/gen_deckdata.py
+          python .ci/gen_dialogdata.py
 
       - name: Publish Native AOT shared library
         run: >
@@ -111,7 +117,9 @@ jobs:
       - name: zip artifact
         run: |
           apt-get update && apt-get install -y zip
-          cd artifacts/native
+          cd artifacts/native/${{ matrix.rid }}
+          rm -r *.config
+          cd ..
           zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
 
       - name: Upload artifact
@@ -144,8 +152,10 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Write DeckData.cs
-        run: python .ci/gen_deckdata.py
+      - name: Write cs
+        run: |
+          python .ci/gen_deckdata.py
+          python .ci/gen_dialogdata.py
 
       - name: Publish Native AOT shared library
         run: >
@@ -165,7 +175,9 @@ jobs:
       - name: zip artifact
         run: |
           apt-get update && apt-get install -y zip
-          cd artifacts/native
+          cd artifacts/native/${{ matrix.rid }}
+          rm -r *.config
+          cd ..
           zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
 
       - name: Upload artifact
@@ -219,8 +231,10 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Write DeckData.cs
-        run: python .ci/gen_deckdata.py
+      - name: Write cs
+        run: |
+          python .ci/gen_deckdata.py
+          python .ci/gen_dialogdata.py
 
       - name: Publish Native AOT shared library
         run: |
@@ -245,7 +259,9 @@ jobs:
       - name: zip artifact
         run: |
           apt-get update && apt-get install -y zip
-          cd artifacts/native
+          cd artifacts/native/android-${{ matrix.abi }}
+          rm -r *.config
+          cd ..
           zip -r windbot-android-${{ matrix.abi }}.zip android-${{ matrix.abi }}
 
       - name: Upload artifact
