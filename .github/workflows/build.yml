@@ -6,191 +6,86 @@ on:
     branches: [ "ygopro3" ]
 
 jobs:
-  windows:
-    name: Windows ${{ matrix.rid }}
-    runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        rid:
-          - win-x64
-          - win-arm64
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Publish Native AOT shared library
-        shell: pwsh
-        run: >
-          dotnet publish WindBot.csproj
-          -c Release
-          -f net8.0
-          -r ${{ matrix.rid }}
-          --self-contained true
-          -p:PublishAot=true
-          -p:NativeLib=Shared
-          -p:OutputType=Library
-          -p:StripSymbols=true
-          -p:DebugType=none
-          -p:DebugSymbols=false
-          -o artifacts/native/${{ matrix.rid }}
-
-      - name: zip artifact
-        run: |
-          choco install zip
-          cd artifacts/native
-          zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windbot-${{ matrix.rid }}.zip
-          path: artifacts/native/windbot-${{ matrix.rid }}.zip
-
-  linux:
-    name: Linux ${{ matrix.rid }}
+  build:
+    name: Build Native AOT (matrix)
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - rid: linux-x64
+          - name: win-x64
+            runner: windows-2022
+            rid: win-x64
+            os: windows
+          - name: win-arm64
+            runner: windows-2022
+            rid: win-arm64
+            os: windows
+          - name: linux-x64
             runner: ubuntu-22.04
-          - rid: linux-arm64
+            rid: linux-x64
+            os: linux
+          - name: linux-arm64
             runner: ubuntu-24.04-arm
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Native AOT prerequisites
-        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Publish Native AOT shared library
-        run: >
-          dotnet publish WindBot.csproj
-          -c Release
-          -f net8.0
-          -r ${{ matrix.rid }}
-          --self-contained true
-          -p:PublishAot=true
-          -p:NativeLib=Shared
-          -p:OutputType=Library
-          -p:StripSymbols=true
-          -p:DebugType=none
-          -p:DebugSymbols=false
-          -o artifacts/native/${{ matrix.rid }}
-
-      - name: zip artifact
-        run: |
-          apt-get update && apt-get install -y zip
-          cd artifacts/native
-          zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windbot-${{ matrix.rid }}.zip
-          path: artifacts/native/windbot-${{ matrix.rid }}.zip
-
-  macos:
-    name: macOS ${{ matrix.rid }}
-    runs-on: macos-14
-    strategy:
-      fail-fast: false
-      matrix:
-        rid:
-          - osx-x64
-          - osx-arm64
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Publish Native AOT shared library
-        run: >
-          dotnet publish WindBot.csproj
-          -c Release
-          -f net8.0
-          -r ${{ matrix.rid }}
-          --self-contained true
-          -p:PublishAot=true
-          -p:NativeLib=Shared
-          -p:OutputType=Library
-          -p:StripSymbols=true
-          -p:DebugType=none
-          -p:DebugSymbols=false
-          -o artifacts/native/${{ matrix.rid }}
-
-      - name: zip artifact
-        run: |
-          apt-get update && apt-get install -y zip
-          cd artifacts/native
-          zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windbot-${{ matrix.rid }}.zip
-          path: artifacts/native/windbot-${{ matrix.rid }}.zip
-
-  android:
-    name: Android ${{ matrix.name }}
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: x64
-            abi: x86_64
+            rid: linux-arm64
+            os: linux
+          - name: osx-x64
+            runner: macos-14
+            rid: osx-x64
+            os: macos
+          - name: osx-arm64
+            runner: macos-14
+            rid: osx-arm64
+            os: macos
+          - name: android-x64
+            runner: ubuntu-22.04
             rid: linux-bionic-x64
+            os: android
             target-framework: net8.0
             clang: x86_64-linux-android24-clang
-          - name: arm64
-            abi: arm64-v8a
+            abi: x86_64
+          - name: android-arm64
+            runner: ubuntu-24.04-arm
             rid: linux-bionic-arm64
+            os: android
             target-framework: net8.0
             clang: aarch64-linux-android24-clang
-          - name: arm
-            abi: armeabi-v7a
+            abi: arm64
+          - name: android-arm
+            runner: ubuntu-22.04
             rid: linux-bionic-arm
+            os: android
             target-framework: net10.0
             clang: armv7a-linux-androideabi24-clang
+            abi: armeabi-v7a
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Native AOT prerequisites
+      - name: Install Native AOT prerequisites (linux/android)
+        if: matrix.os == 'linux' || matrix.os == 'android'
         run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 8.0.x
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Write DeckData.cs
+        run: python .ci/gen_deckdata.py
 
       - name: Install Android workload
+        if: matrix.os == 'android'
         run: dotnet workload install android
 
-      - name: Publish Native AOT shared library
+      - name: Publish Native AOT shared library (android)
+        if: matrix.os == 'android'
         run: |
           android_toolchain="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
           dotnet publish WindBot.csproj \
@@ -210,20 +105,46 @@ jobs:
             -p:CppCompilerAndLinker="$android_toolchain/bin/${{ matrix.clang }}" \
             -o artifacts/native/android-${{ matrix.abi }}
 
-      - name: zip artifact
+      - name: Publish Native AOT shared library (other)
+        if: matrix.os != 'android'
         run: |
-          apt-get update && apt-get install -y zip
-          cd artifacts/native
-          zip -r windbot-android-${{ matrix.abi }}.zip android-${{ matrix.abi }}
+          dotnet publish WindBot.csproj \
+            -c Release \
+            -f net8.0 \
+            -r ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishAot=true \
+            -p:NativeLib=Shared \
+            -p:OutputType=Library \
+            -p:StripSymbols=true \
+            -p:DebugType=none \
+            -p:DebugSymbols=false \
+            -o artifacts/native/${{ matrix.rid }}
+
+      - name: Zip artifact
+        run: |
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            choco install zip
+            cd artifacts/native
+            zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
+          elif [ "${{ matrix.os }}" = "android" ]; then
+            sudo apt-get update && sudo apt-get install -y zip
+            cd artifacts/native
+            zip -r windbot-android-${{ matrix.abi }}.zip android-${{ matrix.abi }}
+          else
+            sudo apt-get update && sudo apt-get install -y zip
+            cd artifacts/native
+            zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windbot-android-${{ matrix.abi }}.zip
-          path: artifacts/native/windbot-android-${{ matrix.abi }}.zip
+          name: ${{ format('windbot-{0}', matrix.os == 'android' && format('android-{0}', matrix.abi) || matrix.rid) }}.zip
+          path: ${{ matrix.os == 'android' && format('artifacts/native/windbot-android-{0}.zip', matrix.abi) || format('artifacts/native/windbot-{0}.zip', matrix.rid) }}
 
   create-release:
-    needs: [android, windows, macos, linux]
+    needs: [build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
