@@ -56,8 +56,7 @@ jobs:
           choco install zip
           cd artifacts/native/${{ matrix.rid }}
           rm -r *.config
-          cd ..
-          zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
+          zip -r windbot-${{ matrix.rid }}.zip *.dll
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -119,8 +118,7 @@ jobs:
           apt-get update && apt-get install -y zip
           cd artifacts/native/${{ matrix.rid }}
           rm -r *.config
-          cd ..
-          zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
+          zip -r windbot-${{ matrix.rid }}.zip *.so
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -177,8 +175,7 @@ jobs:
           apt-get update && apt-get install -y zip
           cd artifacts/native/${{ matrix.rid }}
           rm -r *.config
-          cd ..
-          zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
+          zip -r windbot-${{ matrix.rid }}.zip *.dylib
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -261,8 +258,7 @@ jobs:
           apt-get update && apt-get install -y zip
           cd artifacts/native/android-${{ matrix.abi }}
           rm -r *.config
-          cd ..
-          zip -r windbot-android-${{ matrix.abi }}.zip android-${{ matrix.abi }}
+          zip -r windbot-android-${{ matrix.abi }}.zip *.so
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
