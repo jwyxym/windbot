@@ -25,6 +25,14 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Write DeckData.cs
+        run: python .ci/gen_deckdata.py
+
       - name: Publish Native AOT shared library
         shell: pwsh
         run: >
@@ -77,6 +85,14 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Write DeckData.cs
+        run: python .ci/gen_deckdata.py
+
       - name: Publish Native AOT shared library
         run: >
           dotnet publish WindBot.csproj
@@ -122,6 +138,14 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Write DeckData.cs
+        run: python .ci/gen_deckdata.py
 
       - name: Publish Native AOT shared library
         run: >
@@ -189,6 +213,14 @@ jobs:
 
       - name: Install Android workload
         run: dotnet workload install android
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Write DeckData.cs
+        run: python .ci/gen_deckdata.py
 
       - name: Publish Native AOT shared library
         run: |
