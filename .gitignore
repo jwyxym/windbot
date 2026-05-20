@@ -160,3 +160,4 @@ $RECYCLE.BIN/
 *.bat
 
 Game/DeckData.cs
+Game/DialogData.cs

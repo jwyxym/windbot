@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using WindBot.Game;
 
 namespace WindBot.Game.AI
 {
@@ -53,10 +54,10 @@ namespace WindBot.Game.AI
         public Dialogs(GameClient game)
         {
             _game = game;
-            string dialogfilename = game.Dialog;
-            using (FileStream fs = Program.ReadFile("Dialogs", dialogfilename, "json"))
+            string name = game.Dialog;
+            DialogsData data = DialogData.Dialog.GetValueOrDefault(name);
+            if (data != null)
             {
-                DialogsData data = JsonSerializer.Deserialize(fs, DialogsJsonContext.Default.DialogsData);
                 _welcome = data.welcome;
                 _deckerror = data.deckerror;
                 _duelstart = data.duelstart;
@@ -72,6 +73,28 @@ namespace WindBot.Game.AI
                 _chaining = data.chaining;
                 _surrender = data.surrender;
                 _custom = data.custom;
+            }
+            else
+            {
+                using (FileStream fs = Program.ReadFile("Dialogs", name, "json"))
+                {
+                    data = JsonSerializer.Deserialize(fs, DialogsJsonContext.Default.DialogsData);
+                    _welcome = data.welcome;
+                    _deckerror = data.deckerror;
+                    _duelstart = data.duelstart;
+                    _newturn = data.newturn;
+                    _endturn = data.endturn;
+                    _directattack = data.directattack;
+                    _attack = data.attack;
+                    _ondirectattack = data.ondirectattack;
+                    _facedownmonstername = data.facedownmonstername;
+                    _activate = data.activate;
+                    _summon = data.summon;
+                    _setmonster = data.setmonster;
+                    _chaining = data.chaining;
+                    _surrender = data.surrender;
+                    _custom = data.custom;
+                }
             }
         }
 

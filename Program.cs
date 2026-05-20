@@ -108,6 +108,9 @@ namespace WindBot
                         string port = GetQueryValue(query, "port");
                         if (port != null)
                             Info.Port = Int32.Parse(port);
+                        string deckfile = GetQueryValue(query, "deckfile");
+                        if (deckfile != null)
+                            Info.DeckFile = deckfile;
                         string dialog = GetQueryValue(query, "dialog");
                         if (dialog != null)
                             Info.Dialog = dialog;
