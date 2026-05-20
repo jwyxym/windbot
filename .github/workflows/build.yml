@@ -230,7 +230,7 @@ jobs:
         run: |
           apt-get update && apt-get install -y zip
           cd artifacts/native
-          zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
+          zip -r windbot-android-${{ matrix.abi }}.zip android-${{ matrix.abi }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
