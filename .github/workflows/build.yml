@@ -126,7 +126,7 @@ jobs:
           name: windbot-${{ matrix.rid }}.zip
           path: artifacts/native/${{ matrix.rid }}/windbot-${{ matrix.rid }}.zip
 
-  macos:
+  build-macos:
     name: macOS ${{ matrix.rid }}
     runs-on: macos-14
     strategy:
@@ -170,18 +170,50 @@ jobs:
           -p:DebugSymbols=false
           -o artifacts/native/${{ matrix.rid }}
 
-      - name: zip artifact
-        run: |
-          apt-get update && apt-get install -y zip
-          cd artifacts/native/${{ matrix.rid }}
-          rm -r *.config
-          zip -r windbot-${{ matrix.rid }}.zip *.dylib
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windbot-${{ matrix.rid }}.zip
-          path: artifacts/native/${{ matrix.rid }}/windbot-${{ matrix.rid }}.zip
+          name: windbot-${{ matrix.rid }}
+          path: artifacts/native/${{ matrix.rid }}/*
+
+  macos:
+    runs-on: macos-latest
+    needs: build-macos
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windbot-osx-x64
+          path: x64
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: windbot-osx-arm64
+          path: arm64
+
+      - name: Combine universal dylib
+        run: |
+          mkdir dist
+          lipo -create \
+            -output dist/Windbot.dylib \
+            x64/Windbot.dylib \
+            arm64/Windbot.dylib
+          lipo -create \
+            -output dist/libe_sqlite3.dylib \
+            x64/libe_sqlite3.dylib \
+            arm64/libe_sqlite3.dylib
+
+      - name: zip artifact
+        run: |
+          apt-get update && apt-get install -y zip
+          cd dist
+          zip -r windbot-macos-universal.zip *.dylib
+
+      - name: Upload final artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windbot-macos-universal
+          path: dist/windbot-macos-universal.zip
 
   android:
     name: Android ${{ matrix.name }}
@@ -289,6 +321,6 @@ jobs:
       - name: Upload assets
         run: |
           cd build
-          gh release upload release-latest $(find . -type f) --clobber
+          gh release upload release-latest $(find . -type f -name "*.zip") --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
