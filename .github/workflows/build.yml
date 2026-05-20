@@ -62,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windbot-${{ matrix.rid }}.zip
-          path: artifacts/native/windbot-${{ matrix.rid }}.zip
+          path: artifacts/native/${{ matrix.rid }}/windbot-${{ matrix.rid }}.zip
 
   linux:
     name: Linux ${{ matrix.rid }}
@@ -124,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windbot-${{ matrix.rid }}.zip
-          path: artifacts/native/windbot-${{ matrix.rid }}.zip
+          path: artifacts/native/${{ matrix.rid }}/windbot-${{ matrix.rid }}.zip
 
   macos:
     name: macOS ${{ matrix.rid }}
@@ -181,7 +181,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windbot-${{ matrix.rid }}.zip
-          path: artifacts/native/windbot-${{ matrix.rid }}.zip
+          path: artifacts/native/${{ matrix.rid }}/windbot-${{ matrix.rid }}.zip
 
   android:
     name: Android ${{ matrix.name }}
@@ -264,7 +264,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windbot-android-${{ matrix.abi }}.zip
-          path: artifacts/native/windbot-android-${{ matrix.abi }}.zip
+          path: artifacts/native/android-${{ matrix.abi }}/windbot-android-${{ matrix.abi }}.zip
 
   create-release:
     needs: [android, windows, macos, linux]
