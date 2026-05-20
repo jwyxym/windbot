@@ -32,10 +32,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Decks\*.ydk" CopyToOutputDirectory="PreserveNewest" />
-    <None Update="Dialogs\*.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Remove="Mono.Data.Sqlite.dll" />
-    <None Remove="sqlite3.dll" />
     <Content Update="WindBot.ico" />
   </ItemGroup>
 </Project>
