@@ -172,23 +172,15 @@ jobs:
             rid: linux-bionic-arm
             target-framework: net10.0
             clang: armv7a-linux-androideabi24-clang
-          - name: x86
-            abi: x86
-            rid: linux-bionic-x86
-            target-framework: net8.0
-            clang: x86_64-linux-android24-clang
 
     steps:
       - name: Checkout
-        if: matrix.rid != 'unsupported'
         uses: actions/checkout@v4
 
       - name: Install Native AOT prerequisites
-        if: matrix.rid != 'unsupported'
         run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
 
       - name: Setup .NET
-        if: matrix.rid != 'unsupported'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
@@ -196,17 +188,9 @@ jobs:
             10.0.x
 
       - name: Install Android workload
-        if: matrix.rid != 'unsupported'
         run: dotnet workload install android
 
-      - name: Skip unsupported Android x86 Native AOT
-        if: matrix.rid == 'unsupported'
-        run: |
-          echo "Android x86 is not supported by .NET Native AOT."
-          echo "Supported Android Native AOT architectures are x64 and arm64 on .NET 8, plus arm on .NET 9+."
-
       - name: Publish Native AOT shared library
-        if: matrix.rid != 'unsupported'
         run: |
           android_toolchain="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
           dotnet publish WindBot.csproj \
