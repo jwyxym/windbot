@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using YGOSharp.OCGWrapper;
 
 namespace WindBot.Game
@@ -40,37 +39,16 @@ namespace WindBot.Game
 
         public static Deck Load(string name)
         {
-            StreamReader reader = null;
             try
             {
-                reader = new StreamReader(Program.ReadFile("Decks", name, "ydk"));
-
                 Deck deck = new Deck();
-                bool side = false;
-
-                while (!reader.EndOfStream)
-                {
-                    string line = reader.ReadLine();
-                    if (line == null)
-                        continue;
-
-                    line = line.Trim();
-                    if (line.StartsWith("#"))
-                        continue;
-                    if (line.Equals("!side"))
-                    {
-                        side = true;
-                        continue;
-                    }
-
-                    int id;
-                    if (!int.TryParse(line, out id))
-                        continue;
-
-                    deck.AddNewCard(id, side);
+                int[][] deckData = DeckData.AiDecks.GetValueOrDefault(name);
+                if (deckData != null && deckData.Length >= 2)  {
+                    foreach (int id in deckData[0])
+                        deck.AddNewCard(id, false);
+                    foreach (int id in deckData[1])
+                        deck.AddNewCard(id, true);
                 }
-
-                reader.Close();
 
                 if (deck.Cards.Count > 60)
                     return null;
@@ -83,7 +61,6 @@ namespace WindBot.Game
             }
             catch (Exception)
             {
-                reader?.Close();
                 return null;
             }
         }
