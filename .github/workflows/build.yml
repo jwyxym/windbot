@@ -41,11 +41,17 @@ jobs:
           -p:DebugSymbols=false
           -o artifacts/native/${{ matrix.rid }}
 
+      - name: zip artifact
+        run: |
+          choco install zip
+          cd artifacts/native
+          zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windbot-${{ matrix.rid }}
-          path: artifacts/native/${{ matrix.rid }}/*
+          name: windbot-${{ matrix.rid }}.zip
+          path: artifacts/native/windbot-${{ matrix.rid }}.zip
 
   linux:
     name: Linux ${{ matrix.rid }}
@@ -86,11 +92,17 @@ jobs:
           -p:DebugSymbols=false
           -o artifacts/native/${{ matrix.rid }}
 
+      - name: zip artifact
+        run: |
+          apt-get update && apt-get install -y zip
+          cd artifacts/native
+          zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windbot-${{ matrix.rid }}
-          path: artifacts/native/${{ matrix.rid }}/*
+          name: windbot-${{ matrix.rid }}.zip
+          path: artifacts/native/windbot-${{ matrix.rid }}.zip
 
   macos:
     name: macOS ${{ matrix.rid }}
@@ -126,11 +138,17 @@ jobs:
           -p:DebugSymbols=false
           -o artifacts/native/${{ matrix.rid }}
 
+      - name: zip artifact
+        run: |
+          apt-get update && apt-get install -y zip
+          cd artifacts/native
+          zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windbot-${{ matrix.rid }}
-          path: artifacts/native/${{ matrix.rid }}/*
+          name: windbot-${{ matrix.rid }}.zip
+          path: artifacts/native/windbot-${{ matrix.rid }}.zip
 
   android:
     name: Android ${{ matrix.name }}
@@ -208,9 +226,14 @@ jobs:
             -p:CppCompilerAndLinker="$android_toolchain/bin/${{ matrix.clang }}" \
             -o artifacts/native/android-${{ matrix.abi }}
 
+      - name: zip artifact
+        run: |
+          apt-get update && apt-get install -y zip
+          cd artifacts/native
+          zip -r windbot-${{ matrix.rid }}.zip ${{ matrix.rid }}
+
       - name: Upload artifact
-        if: matrix.rid != 'unsupported'
         uses: actions/upload-artifact@v4
         with:
-          name: windbot-android-${{ matrix.abi }}
-          path: artifacts/native/android-${{ matrix.abi }}/*
+          name: windbot-${{ matrix.rid }}.zip
+          path: artifacts/native/windbot-${{ matrix.rid }}.zip
