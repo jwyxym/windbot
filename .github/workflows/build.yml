@@ -174,9 +174,9 @@ jobs:
             clang: armv7a-linux-androideabi24-clang
           - name: x86
             abi: x86
-            rid: unsupported
-            target-framework: unsupported
-            clang: unsupported
+            rid: linux-bionic-x86
+            target-framework: net8.0
+            clang: x86_64-linux-android24-clang
 
     steps:
       - name: Checkout
