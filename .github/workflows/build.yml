@@ -106,7 +106,7 @@ jobs:
             -o artifacts/native/android-${{ matrix.abi }}
 
       - name: Publish Native AOT shared library (other)
-        if: matrix.os != 'android'
+        if: matrix.os != 'android' && matrix.os != 'windows'
         run: |
           dotnet publish WindBot.csproj \
             -c Release \
@@ -120,6 +120,22 @@ jobs:
             -p:DebugType=none \
             -p:DebugSymbols=false \
             -o artifacts/native/${{ matrix.rid }}
+
+      - name: Publish Native AOT shared library (other)
+        if: matrix.os == 'windows'
+        run: >
+          dotnet publish WindBot.csproj
+          -c Release
+          -f net8.0
+          -r ${{ matrix.rid }}
+          --self-contained true
+          -p:PublishAot=true
+          -p:NativeLib=Shared
+          -p:OutputType=Library
+          -p:StripSymbols=true
+          -p:DebugType=none
+          -p:DebugSymbols=false
+          -o artifacts/native/${{ matrix.rid }}
 
       - name: Zip artifact
         run: |
