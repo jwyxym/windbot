@@ -67,7 +67,7 @@ namespace WindBot.Game.AI
 
         private static void Register(BotList.BotItem bot)
         {
-            _decks.Add(bot.Name, new DeckInstance(bot.Deck, "Normal", bot.Factory));
+            _decks.Add(bot.AIName, new DeckInstance(bot.Deck, "Normal", bot.Factory));
         }
     }
 }
