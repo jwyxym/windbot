@@ -7,6 +7,32 @@ namespace WindBot
 {
     public static class WindBotExports
     {
+        [UnmanagedCallersOnly(EntryPoint = "windbot_list")]
+        public static IntPtr WindBotList()
+        {
+            try
+            {
+                var names = new List<string>();
+                foreach (var bot in WindBot.Game.BotList.List)
+                    names.Add(bot.Name);
+                string result = string.Join(" ", names);
+
+                IntPtr ptr = Marshal.StringToCoTaskMemUTF8(result);
+                return ptr;
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
+        }
+        [UnmanagedCallersOnly(EntryPoint = "windbot_free")]
+        public static void WindBotFree(IntPtr ptr)
+        {
+            if (ptr != IntPtr.Zero)
+            {
+                Marshal.FreeCoTaskMem(ptr);
+            }
+        }
         [UnmanagedCallersOnly(EntryPoint = "windbot_start")]
         public static int WindBotStart(IntPtr argumentsUtf8)
         {
