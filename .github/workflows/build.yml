@@ -285,6 +285,45 @@ jobs:
             -p:CppCompilerAndLinker="$android_toolchain/bin/${{ matrix.clang }}" \
             -o artifacts/native/android-${{ matrix.abi }}
 
+      - name: Build Android e_sqlite3
+        run: |
+          android_toolchain="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          sqlite_version="3450300"
+          sqlite_dir="sqlite-amalgamation-${sqlite_version}"
+          curl -L -o sqlite-amalgamation.zip "https://www.sqlite.org/2024/sqlite-amalgamation-${sqlite_version}.zip"
+          unzip -q sqlite-amalgamation.zip
+          "$android_toolchain/bin/${{ matrix.clang }}" \
+            -shared \
+            -fPIC \
+            -O2 \
+            -DSQLITE_THREADSAFE=1 \
+            -DSQLITE_ENABLE_COLUMN_METADATA \
+            -DSQLITE_ENABLE_FTS3 \
+            -DSQLITE_ENABLE_FTS3_PARENTHESIS \
+            -DSQLITE_ENABLE_FTS4 \
+            -DSQLITE_ENABLE_FTS5 \
+            -DSQLITE_ENABLE_JSON1 \
+            -DSQLITE_ENABLE_RTREE \
+            -DSQLITE_ENABLE_UNLOCK_NOTIFY \
+            -DSQLITE_DEFAULT_MEMSTATUS=0 \
+            "$sqlite_dir/sqlite3.c" \
+            -o "artifacts/native/android-${{ matrix.abi }}/libe_sqlite3.so" \
+            -ldl \
+            -lm
+          "$android_toolchain/bin/llvm-readelf" -d "artifacts/native/android-${{ matrix.abi }}/libe_sqlite3.so"
+
+      - name: Verify Android native libraries
+        run: |
+          android_toolchain="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          for lib in artifacts/native/android-${{ matrix.abi }}/*.so; do
+            echo "==== $lib"
+            "$android_toolchain/bin/llvm-readelf" -d "$lib"
+            if "$android_toolchain/bin/llvm-readelf" -d "$lib" | grep -E "libc\.so\.6|ld-linux"; then
+              echo "$lib depends on glibc and is not an Android library"
+              exit 1
+            fi
+          done
+
       - name: zip artifact
         run: |
           apt-get update && apt-get install -y zip
