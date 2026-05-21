@@ -39,6 +39,7 @@ namespace YGOSharp.OCGWrapper
                             }
                         }
                     }
+                    SqliteConnection.ClearPool(connection);
                 }
             }
             catch (Exception ex)

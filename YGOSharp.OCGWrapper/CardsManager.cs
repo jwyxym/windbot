@@ -26,6 +26,7 @@ namespace YGOSharp.OCGWrapper
                         }
                     }
                 }
+                SqliteConnection.ClearPool(connection);
             }
         }
 
