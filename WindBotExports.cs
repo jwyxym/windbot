@@ -2,20 +2,40 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Encodings.Web;
 
 namespace WindBot
 {
+    [JsonSourceGenerationOptions(WriteIndented = false)]
+    [JsonSerializable(typeof(List<string[]>))]
+    internal partial class WindBotJsonContext : JsonSerializerContext
+    {
+    }
+
     public static class WindBotExports
     {
+        private static readonly WindBotJsonContext _jsonContext = new WindBotJsonContext(
+            new JsonSerializerOptions
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping 
+            }
+        );
+
         [UnmanagedCallersOnly(EntryPoint = "windbot_list")]
         public static IntPtr WindBotList()
         {
             try
             {
-                var names = new List<string>();
+                var names = new List<string[]>();
                 foreach (var bot in WindBot.Game.BotList.List)
-                    names.Add(bot.Name);
-                string result = string.Join(" ", names);
+                    names.Add([bot.Name, bot.AIName, bot.Dialog]);
+
+                string result = JsonSerializer.Serialize(
+                    names,
+                    _jsonContext.ListStringArray
+                );
 
                 IntPtr ptr = Marshal.StringToCoTaskMemUTF8(result);
                 return ptr;
