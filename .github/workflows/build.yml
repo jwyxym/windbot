@@ -126,6 +126,58 @@ jobs:
           name: windbot-${{ matrix.rid }}.zip
           path: artifacts/native/${{ matrix.rid }}/windbot-${{ matrix.rid }}.zip
 
+  linux-amd64-executable:
+    name: Linux amd64 executable
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Native AOT prerequisites
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev zip
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Write cs
+        run: |
+          python .ci/gen_deckdata.py
+          python .ci/gen_dialogdata.py
+
+      - name: Publish Native AOT executable
+        run: >
+          dotnet publish WindBot.csproj
+          -c Release
+          -f net8.0
+          -r linux-x64
+          --self-contained true
+          -p:PublishAot=true
+          -p:StripSymbols=true
+          -p:DebugType=none
+          -p:DebugSymbols=false
+          -o artifacts/native/linux-amd64-executable
+
+      - name: zip artifact
+        run: |
+          cd artifacts/native/linux-amd64-executable
+          rm -f *.config
+          chmod +x WindBot
+          zip -r windbot-linux-amd64-executable.zip WindBot *.so
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windbot-linux-amd64.zip
+          path: artifacts/native/linux-amd64-executable/windbot-linux-amd64-executable.zip
+
   build-macos:
     name: macOS ${{ matrix.rid }}
     runs-on: macos-14
@@ -338,7 +390,7 @@ jobs:
           path: artifacts/native/android-${{ matrix.abi }}/windbot-android-${{ matrix.abi }}.zip
 
   create-release:
-    needs: [android, windows, macos, linux]
+    needs: [android, windows, macos, linux, linux-amd64-executable]
     runs-on: ubuntu-latest
     permissions:
       contents: write
