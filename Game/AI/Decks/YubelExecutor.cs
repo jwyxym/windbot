@@ -84,6 +84,7 @@ namespace WindBot.Game.AI.Decks
             public const int AccesscodeTalker = 86066372;
             public const int GhostMournerMoonlitChill = 52038441;
             public const int NibiruThePrimalBeing = 27204311;
+            public const int AME_NO_MURAKUMO_NO_MITSURUGI = 19899073;
         }
 
         const int SetcodeTimeLord = 0x4a;
@@ -225,8 +226,6 @@ namespace WindBot.Game.AI.Decks
         }
         //======================Default code
         #region Default Code Start Here
-        private int _totalAttack;
-        private int _totalBotAttack;
         bool enemyActivateMaxxC = false;
         bool enemyActivateLockBird = false;
         int dimensionShifterCount = 0;
@@ -316,8 +315,15 @@ namespace WindBot.Game.AI.Decks
             }
             if (Card.IsFacedown())
                 return true;
-            if (CheckInDanger() && (_totalAttack > _totalBotAttack))
-                return Card.IsDefense();
+
+            int totalEnemyAttack = Util.GetTotalAttackingMonsterAttack(1);
+            int totalBotAttack = Util.GetTotalAttackingMonsterAttack(0);
+            if (Duel.Phase == DuelPhase.Main1 &&
+                totalEnemyAttack >= Bot.LifePoints &&
+                totalEnemyAttack > totalBotAttack)
+            {
+                return Card.IsAttack();
+            }
             return DefaultMonsterRepos();
         }
 
@@ -326,20 +332,6 @@ namespace WindBot.Game.AI.Decks
             if (GetProblematicEnemyMonster() == null && Bot.GetMonsters().Any(card => card.IsFaceup()))
             {
                 return true;
-            }
-            return false;
-        }
-
-        public bool CheckInDanger()
-        {
-            if (Duel.Phase > DuelPhase.Main1 && Duel.Phase < DuelPhase.Main2)
-            {
-                int totalAtk = 0;
-                foreach (ClientCard m in Enemy.GetMonsters())
-                {
-                    if (m.IsAttack() && !m.Attacked) totalAtk += m.Attack;
-                }
-                if (totalAtk >= Bot.LifePoints) return true;
             }
             return false;
         }
@@ -1455,18 +1447,33 @@ namespace WindBot.Game.AI.Decks
             return DontSelfNG();
         }
 
+        private bool ValidDesiraeReturnTargetPredicate(ClientCard card)
+        {
+            return !card.IsCode(CardId.FIENDSMITHS_DESIRAE) && card.HasAttribute(CardAttribute.Light) && card.HasRace(CardRace.Fiend);
+        }
+
         private bool ActDesirae()
         {
             if (Card.Location != CardLocation.Grave) {return false; }
+            bool hasLightFiend = Bot.Graveyard.Any(ValidDesiraeReturnTargetPredicate);
+            if (!hasLightFiend) return false;
             ClientCard target = GetBestEnemyCard(onlyFaceup: true, canBeTarget: true, checkGrave: false);
             if (target == null) return false;
-            if (Bot.HasInGraveyard(CardId.FIENDSMITHS_REQUIEM))
+            List<int> targetPreferenceOrder = new List<int>() {
+                CardId.FIENDSMITHS_REQUIEM, CardId.MOON_OF_THE_CLOSED_HEAVEN,
+                CardId.FABLED_LURRIE, CardId.LACRIMA_CT
+            };
+            int preferredLightFiend = targetPreferenceOrder.FirstOrDefault(c => Bot.HasInGraveyard(c));
+            if (preferredLightFiend != 0)
             {
-                AI.SelectCard(CardId.FIENDSMITHS_REQUIEM);
-                AI.SelectNextCard(target);
-                return true;
+                AI.SelectCard(preferredLightFiend);
+            } 
+            else
+            {
+                ClientCard lightFiend = Bot.Graveyard.FirstOrDefault(ValidDesiraeReturnTargetPredicate);
+                AI.SelectCard(lightFiend.Id);
             }
-            AI.SelectCard(target);
+            AI.SelectNextCard(target);
             return true;
         }
 
@@ -2031,6 +2038,15 @@ namespace WindBot.Game.AI.Decks
             var solving = Duel.GetCurrentSolvingChainCard();
             DumpChain("OnSelectYesNo");
             Logger.DebugWriteLine($"[THRONE] OnSelectYesNo desc={desc} stage={_throneStage} solving={CardStr(solving)}");
+            if (IsEnemyMurakumoSolving())
+            {
+                bool discard = ShouldDiscardForMurakumo();
+
+                Logger.DebugWriteLine(
+                    $"[MURAKUMO] Accept discard={discard}, hand={Bot.Hand.Count}");
+
+                return discard;
+            }
             if (info != null && info.ActivatePlayer == 1)
             { return false; }
             // --- Nightmare Throne ---
@@ -2107,6 +2123,25 @@ namespace WindBot.Game.AI.Decks
             hint == (long)HintMsg.Release ||
             hint.ToString().ToLower().Contains("release"); // กันเหนียว
             var solving = Duel.GetCurrentSolvingChainCard();
+            if (IsEnemyMurakumoSolving() && cards != null && cards.Count > 0 && (hint == HintMsg.Discard || 
+                hint == HintMsg.ToGrave) && cards.All(c => c != null && c.Controller == 0 && c.Location == CardLocation.Hand))
+            {
+                var discardOrder = cards
+                    // ทิ้งการ์ดซ้ำก่อน เช่น Spirit of Yubel 3 ใบ
+                    .OrderBy(c =>
+                        Bot.Hand.Count(h =>
+                            h != null && h.IsCode(c.Id)) > 1 ? 0 : 1)
+
+                    // ภายในกลุ่มเดียวกันใช้ priority เดิม
+                    .ThenBy(ScoreOwnCardForCost)
+                    .ToList();
+
+                Logger.DebugWriteLine(
+                    $"[MURAKUMO] Discard => {CardStr(discardOrder[0])}");
+
+                return Util.CheckSelectCount(
+                    discardOrder, cards, min, max);
+            }
             if (cards != null && cards.Count > 0)
             {
                 // === Throne ===
@@ -2303,7 +2338,21 @@ namespace WindBot.Game.AI.Decks
             s += Math.Max(0, c.Attack);
             return s;
         }
+        private bool IsEnemyMurakumoSolving()
+        {
+            var info = Duel.GetCurrentSolvingChainInfo();
+            var solving = Duel.GetCurrentSolvingChainCard();
 
+            return info != null
+                && info.ActivatePlayer == 1
+                && solving != null
+                && solving.IsCode(CardId.AME_NO_MURAKUMO_NO_MITSURUGI);
+        }
+
+        private bool ShouldDiscardForMurakumo()
+        {
+            return Bot.Hand.Count >= 2;
+        }
         #endregion
 
         #region DEBUG
