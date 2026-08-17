@@ -172,7 +172,7 @@ namespace WindBot.Game.AI.Decks
                 {
                     UsedAlternativeWhiteDragon.Remove(AlternativeWhiteDragon);
                     Logger.DebugWriteLine("select UsedAlternativeWhiteDragon");
-                    return new[] { AlternativeWhiteDragon };
+                    return Util.CheckSelectCount(new[] { AlternativeWhiteDragon }, cards, min, max);
                 }
             }
 
@@ -182,7 +182,7 @@ namespace WindBot.Game.AI.Decks
         public override void OnSpSummoned()
         {
             // not special summoned by chain
-            if (Duel.GetCurrentSolvingChainCard() == null)
+            if (Duel.GetCurrentSolvingChainInfo() == null)
             {
                 foreach (ClientCard card in Duel.LastSummonedCards)
                 {
@@ -294,7 +294,7 @@ namespace WindBot.Game.AI.Decks
                     CardId.WhiteStoneOfLegend,
                     CardId.WhiteDragon,
                     CardId.DragonSpiritOfWhite
-                }) || Bot.GetCountCardInZone(Bot.MonsterZone, CardId.AlternativeWhiteDragon) >= 2))
+                }) || Bot.MonsterZone.GetCardCount(CardId.AlternativeWhiteDragon) >= 2))
             {
                 target = Util.GetBestEnemyMonster(false, true);
                 AI.SelectCard(target);

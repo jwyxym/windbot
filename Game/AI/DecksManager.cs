@@ -69,6 +69,10 @@ namespace WindBot.Game.AI
         {
             _decks.Add(bot.AIName, new DeckInstance(bot.Deck, "Normal", bot.Factory));
         }
+        public static bool HasDeck(string name)
+        {
+            return _decks.ContainsKey(name);
+        }
     }
 }
 
