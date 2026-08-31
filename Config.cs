@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
+using System.Xml.Linq;
 
 namespace WindBot
 {
@@ -33,11 +33,12 @@ namespace WindBot
                 }
             }
 
-            foreach (string key in ConfigurationManager.AppSettings)
+            Dictionary<string, string> appSettings = LoadAppSettings();
+            foreach (var pair in appSettings)
             {
-                string normalizedKey = key.ToUpper();
+                string normalizedKey = pair.Key.ToUpper();
                 if (!_fields.ContainsKey(normalizedKey))
-                    _fields.Add(normalizedKey, ConfigurationManager.AppSettings[key]);
+                    _fields.Add(normalizedKey, pair.Value);
             }
         }
 
@@ -94,6 +95,48 @@ namespace WindBot
                 }
             }
             return fields;
+        }
+
+        private static Dictionary<string, string> LoadAppSettings()
+        {
+            Dictionary<string, string> fields = new Dictionary<string, string>();
+            foreach (string filename in GetAppConfigCandidates())
+            {
+                if (!File.Exists(filename))
+                    continue;
+
+                XDocument document = XDocument.Load(filename);
+                XElement appSettings = document.Root == null ? null : document.Root.Element("appSettings");
+                if (appSettings == null)
+                    return fields;
+
+                foreach (XElement element in appSettings.Elements("add"))
+                {
+                    XAttribute key = element.Attribute("key");
+                    XAttribute value = element.Attribute("value");
+                    if (key == null || value == null)
+                        continue;
+
+                    string normalizedKey = key.Value.Trim().ToUpper();
+                    if (!fields.ContainsKey(normalizedKey))
+                        fields.Add(normalizedKey, value.Value);
+                }
+                return fields;
+            }
+            return fields;
+        }
+
+        private static string[] GetAppConfigCandidates()
+        {
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            string assemblyName = AppDomain.CurrentDomain.FriendlyName;
+            return new string[]
+            {
+                Path.Combine(baseDirectory, assemblyName + ".config"),
+                Path.Combine(baseDirectory, "WindBot.dll.config"),
+                Path.Combine(baseDirectory, "WindBot.exe.config"),
+                Path.Combine(Directory.GetCurrentDirectory(), "App.config")
+            };
         }
 
         public static string GetString(string key, string defaultValue = null)
