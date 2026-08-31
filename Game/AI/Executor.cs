@@ -147,13 +147,31 @@ namespace WindBot.Game.AI
             // Some AI need do something on card's moving
         }
 
+        /// <summary>
+        /// Called when a card's battle position changes without leaving its zone (MSG_POS_CHANGE).
+        /// </summary>
+        /// <param name="card">The card whose position changed.</param>
+        /// <param name="previousPosition">Position flags before the change.</param>
+        /// <param name="currentPosition">Position flags after the change.</param>
+        public virtual void OnPosChange(ClientCard card, int previousPosition, int currentPosition)
+        {
+            // For overriding
+        }
+
         public virtual IList<ClientCard> OnSelectCard(IList<ClientCard> cards, int min, int max, int hint, bool cancelable)
         {
             // For overriding
             return null;
         }
 
-        public virtual IList<ClientCard> OnSelectSum(IList<ClientCard> cards, int sum, int min, int max, int hint, bool mode)
+        public virtual IList<ClientCard> OnSelectTribute(IList<ClientCard> cards, int min, int max, int hint, bool cancelable)
+        {
+            // For overriding
+            return null;
+        }
+
+        public virtual IList<ClientCard> OnSelectSum(IList<ClientCard> cards, IList<ClientCard> mandatoryCards,
+            int sum, int min, int max, int hint, bool exactEqual)
         {
             // For overriding
             return null;
@@ -165,7 +183,8 @@ namespace WindBot.Game.AI
             return null;
         }
 
-        public virtual IList<ClientCard> OnSelectSynchroMaterial(IList<ClientCard> cards, int sum, int min, int max)
+        public virtual IList<ClientCard> OnSelectSynchroMaterial(IList<ClientCard> cards,
+            IList<ClientCard> mandatoryCards, int sum, int min, int max)
         {
             // For overriding
             return null;
@@ -183,7 +202,8 @@ namespace WindBot.Game.AI
             return null;
         }
 
-        public virtual IList<ClientCard> OnSelectRitualTribute(IList<ClientCard> cards, int sum, int min, int max)
+        public virtual IList<ClientCard> OnSelectRitualTribute(IList<ClientCard> cards,
+            IList<ClientCard> mandatoryCards, int sum, int min, int max, bool exactEqual)
         {
             // For overriding
             return null;

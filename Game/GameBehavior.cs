@@ -411,6 +411,9 @@ namespace WindBot.Game
             }
             if (type == 4) // HINT_OPSELECTED
             {
+                // Record SelectOption announces on the current chain after activation and before resolution.
+                if (_duel.SolvingChainIndex == 0 && _duel.CurrentChainInfo.Count > 0)
+                    _duel.CurrentChainInfo[_duel.CurrentChainInfo.Count - 1].Announces.Add(data);
                 _ai.OnReceivingAnnouce(player, data);
             }
             if (type == 11) // HINT_ZONE
@@ -963,6 +966,7 @@ namespace WindBot.Game
                 }
                 if (_debug)
                     Logger.WriteLine("(" + (card.Name ?? "UnKnowCard") + " change position to " + (CardPosition)cp + ")");
+                _ai.OnPosChange(card, pp, cp);
             }
         }
 
@@ -1685,7 +1689,7 @@ namespace WindBot.Game
 
         private void OnSelectSum(BinaryReader packet)
         {
-            bool mode = packet.ReadByte() == 0;
+            bool exactEqual = packet.ReadByte() == 0;
             packet.ReadByte(); // player
             int sumval = packet.ReadInt32();
             int min = packet.ReadByte();
@@ -1751,7 +1755,8 @@ namespace WindBot.Game
                 }
             }
 
-            IList<ClientCard> selected = _ai.OnSelectSum(cards, mandatoryCards, sumval, min, max, _select_hint, mode);
+            IList<ClientCard> selected = _ai.OnSelectSum(cards, mandatoryCards, sumval, min, max,
+                _select_hint, exactEqual);
             _select_hint = 0;
 
             byte[] result = new byte[mandatoryCards.Count + selected.Count + 1];

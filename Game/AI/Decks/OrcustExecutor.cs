@@ -320,10 +320,13 @@ namespace WindBot.Game.AI.Decks
                 if (attacker.IsCode(CardId.TrickstarCandina) && Bot.HasInHand(CardId.TrickstarCarobein))
                     attacker.RealPower = attacker.RealPower + 1800;
 
-                if (attacker.IsCode(CardId.BorrelswordDragon) && !attacker.IsDisabled() && !BorrelswordDragonUsed)
+                if (attacker.IsCode(CardId.BorrelswordDragon) && !attacker.IsDisabled() &&
+                    !BorrelswordDragonUsed && defender.IsFaceup())
                 {
-                    attacker.RealPower = attacker.RealPower + defender.GetDefensePower() / 2;
-                    defender.RealPower = defender.RealPower - defender.GetDefensePower() / 2;
+                    int halfAttack = (defender.Attack + 1) / 2;
+                    attacker.RealPower += halfAttack;
+                    if (defender.IsAttack())
+                        defender.RealPower = halfAttack;
                 }
             }
             return base.OnPreBattleBetween(attacker, defender);
@@ -984,24 +987,9 @@ namespace WindBot.Game.AI.Decks
             mats.Sort(CardContainer.CompareCardAttack);
             mats.Reverse();
 
-            int link = 0;
-            bool doubleused = false;
-            IList<ClientCard> selected = new List<ClientCard>();
-            foreach (ClientCard card in mats)
-            {
-                selected.Add(card);
-                if (!doubleused && card.LinkCount == 2)
-                {
-                    doubleused = true;
-                    link += 2;
-                }
-                else
-                    link++;
-                if (link >= 4)
-                    break;
-            }
-
-            if (link >= 4 && Util.GetBotAvailZonesFromExtraDeck(selected) > 0)
+            List<ClientCard> selected = Util.GetLinkMaterials(mats, 4, 3, 4)
+                .FirstOrDefault(materials => Util.GetBotAvailZonesFromExtraDeck(materials) > 0);
+            if (selected != null)
             {
                 AI.SelectMaterials(selected);
                 return true;
