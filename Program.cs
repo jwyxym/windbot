@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Net;
+using System.Runtime.InteropServices;
 using WindBot.Game;
 using WindBot.Game.AI;
 using YGOSharp.OCGWrapper;
@@ -24,6 +25,14 @@ namespace WindBot
 
             Config.Load(args);
 
+            string sqlitePath = Config.GetString("SQLitePath", "./");
+            string sqliteLibrary = OperatingSystem.IsWindows()
+                ? "e_sqlite3.dll"
+                : OperatingSystem.IsMacOS()
+                    ? "libe_sqlite3.dylib"
+                    : "libe_sqlite3.so";
+            NativeLibrary.Load(Path.Combine(sqlitePath, sqliteLibrary));
+
             string databasePath = Config.GetString("DbPath", "cards.cdb");
 
             InitDatas(databasePath);
@@ -34,7 +43,8 @@ namespace WindBot
             {
                 // Run in server mode, provide a http interface to create bot.
                 int serverPort = Config.GetInt("ServerPort", 2399);
-                RunAsServer(serverPort);
+                string ServerURL = Config.GetString("ServerURL", "+");
+                RunAsServer(ServerURL, serverPort);
             }
             else
             {
@@ -88,7 +98,7 @@ namespace WindBot
             Run(Info);
         }
 
-        private static void RunAsServer(int ServerPort)
+        private static void RunAsServer(string ServerURL, int ServerPort)
         {
             HttpListener mainServer = new HttpListener();
             lock (ServerSync)
@@ -105,7 +115,7 @@ namespace WindBot
                 using (mainServer)
                 {
                     mainServer.AuthenticationSchemes = AuthenticationSchemes.Anonymous;
-                    mainServer.Prefixes.Add("http://+:" + ServerPort + "/");
+                    mainServer.Prefixes.Add("http://" + ServerURL + ":" + ServerPort + "/");
                     mainServer.Start();
                     Logger.WriteLine("WindBot server start successed.");
                     Logger.WriteLine("HTTP GET http://127.0.0.1:" + ServerPort + "/?name=WindBot&host=127.0.0.1&port=7911 to call the bot.");
