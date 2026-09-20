@@ -14,6 +14,9 @@ namespace WindBot
     {
         internal static Random Rand;
         internal static bool ServerMode;
+        private static readonly object ServerSync = new object();
+        private static HttpListener ServerListener;
+        private static int ServerStopRequested;
 
         internal static void Main(string[] args)
         {
@@ -87,79 +90,126 @@ namespace WindBot
 
         private static void RunAsServer(int ServerPort)
         {
-            using (HttpListener MainServer = new HttpListener())
+            HttpListener mainServer = new HttpListener();
+            lock (ServerSync)
             {
-                MainServer.AuthenticationSchemes = AuthenticationSchemes.Anonymous;
-                MainServer.Prefixes.Add("http://+:" + ServerPort + "/");
-                MainServer.Start();
-                Logger.WriteLine("WindBot server start successed.");
-                Logger.WriteLine("HTTP GET http://127.0.0.1:" + ServerPort + "/?name=WindBot&host=127.0.0.1&port=7911 to call the bot.");
-                while (true)
+                if (ServerListener != null)
+                    throw new InvalidOperationException("WindBot server is already running.");
+
+                ServerListener = mainServer;
+                Interlocked.Exchange(ref ServerStopRequested, 0);
+            }
+
+            try
+            {
+                using (mainServer)
                 {
-                    try
+                    mainServer.AuthenticationSchemes = AuthenticationSchemes.Anonymous;
+                    mainServer.Prefixes.Add("http://+:" + ServerPort + "/");
+                    mainServer.Start();
+                    Logger.WriteLine("WindBot server start successed.");
+                    Logger.WriteLine("HTTP GET http://127.0.0.1:" + ServerPort + "/?name=WindBot&host=127.0.0.1&port=7911 to call the bot.");
+                    while (Volatile.Read(ref ServerStopRequested) == 0)
                     {
-                        HttpListenerContext ctx = MainServer.GetContext();
-                        Dictionary<string, string> query = ParseQueryString(ctx.Request.Url.Query);
-
-                        WindBotInfo Info = new WindBotInfo();
-                        Info.Name = GetQueryValue(query, "name");
-                        Info.Deck = GetQueryValue(query, "deck");
-                        Info.Host = GetQueryValue(query, "host");
-                        string port = GetQueryValue(query, "port");
-                        if (port != null)
-                            Info.Port = Int32.Parse(port);
-                        string deckfile = GetQueryValue(query, "deckfile");
-                        if (deckfile != null)
-                            Info.DeckFile = deckfile;
-                        string dialog = GetQueryValue(query, "dialog");
-                        if (dialog != null)
-                            Info.Dialog = dialog;
-                        string version = GetQueryValue(query, "version");
-                        if (version != null)
-                            Info.Version = Int16.Parse(version);
-                        string password = GetQueryValue(query, "password");
-                        if (password != null)
-                            Info.HostInfo = password;
-                        string hand = GetQueryValue(query, "hand");
-                        if (hand != null)
-                            Info.Hand = Int32.Parse(hand);
-                        string debug = GetQueryValue(query, "debug");
-                        if (debug != null)
-                            Info.Debug= bool.Parse(debug);
-                        string chat = GetQueryValue(query, "chat");
-                        if (chat != null)
-                            Info.Chat = bool.Parse(chat);
-
-                        if (Info.Name == null || Info.Host == null || port == null)
+                        try
                         {
-                            ctx.Response.StatusCode = 400;
-                            ctx.Response.Close();
+                            HttpListenerContext ctx = mainServer.GetContext();
+                            Dictionary<string, string> query = ParseQueryString(ctx.Request.Url.Query);
+
+                            WindBotInfo Info = new WindBotInfo();
+                            Info.Name = GetQueryValue(query, "name");
+                            Info.Deck = GetQueryValue(query, "deck");
+                            Info.Host = GetQueryValue(query, "host");
+                            string port = GetQueryValue(query, "port");
+                            if (port != null)
+                                Info.Port = Int32.Parse(port);
+                            string deckfile = GetQueryValue(query, "deckfile");
+                            if (deckfile != null)
+                                Info.DeckFile = deckfile;
+                            string dialog = GetQueryValue(query, "dialog");
+                            if (dialog != null)
+                                Info.Dialog = dialog;
+                            string version = GetQueryValue(query, "version");
+                            if (version != null)
+                                Info.Version = Int16.Parse(version);
+                            string password = GetQueryValue(query, "password");
+                            if (password != null)
+                                Info.HostInfo = password;
+                            string hand = GetQueryValue(query, "hand");
+                            if (hand != null)
+                                Info.Hand = Int32.Parse(hand);
+                            string debug = GetQueryValue(query, "debug");
+                            if (debug != null)
+                                Info.Debug= bool.Parse(debug);
+                            string chat = GetQueryValue(query, "chat");
+                            if (chat != null)
+                                Info.Chat = bool.Parse(chat);
+
+                            if (Info.Name == null || Info.Host == null || port == null)
+                            {
+                                ctx.Response.StatusCode = 400;
+                                ctx.Response.Close();
+                            }
+                            else
+                            {
+                                ctx.Response.StatusCode = 200;
+                                try
+                                {
+                                    Thread workThread = new Thread(new ParameterizedThreadStart(Run));
+                                    workThread.Start(Info);
+                                }
+                                catch (Exception ex)
+                                {
+                                    if (Debugger.IsAttached)
+                                        throw;
+                                    Logger.WriteErrorLine("Start Thread Error: " + ex);
+                                    ctx.Response.StatusCode = 500;
+                                }
+                                ctx.Response.Close();
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            ctx.Response.StatusCode = 200;
-                            try
-                            {
-                                Thread workThread = new Thread(new ParameterizedThreadStart(Run));
-                                workThread.Start(Info);
-                            }
-                            catch (Exception ex)
-                            {
-                                if (Debugger.IsAttached)
-                                    throw;
-                                Logger.WriteErrorLine("Start Thread Error: " + ex);
-                                ctx.Response.StatusCode = 500;
-                            }
-                            ctx.Response.Close();
+                            if (Volatile.Read(ref ServerStopRequested) != 0)
+                                break;
+                            if (Debugger.IsAttached)
+                                throw;
+                            Logger.WriteErrorLine("Parse Http Request Error: " + ex);
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        if (Debugger.IsAttached)
-                            throw;
-                        Logger.WriteErrorLine("Parse Http Request Error: " + ex);
                     }
                 }
+            }
+            finally
+            {
+                lock (ServerSync)
+                {
+                    if (Object.ReferenceEquals(ServerListener, mainServer))
+                        ServerListener = null;
+                }
+            }
+        }
+
+        public static int StopServer()
+        {
+            HttpListener listener;
+            lock (ServerSync)
+            {
+                listener = ServerListener;
+                Interlocked.Exchange(ref ServerStopRequested, 1);
+            }
+
+            if (listener == null)
+                return 0;
+
+            try
+            {
+                listener.Stop();
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Logger.WriteErrorLine("Stop WindBot server error: " + ex);
+                return 1;
             }
         }
 

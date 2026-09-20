@@ -77,6 +77,28 @@ namespace WindBot
             }
         }
 
+        [UnmanagedCallersOnly(EntryPoint = "windbot_stop")]
+        public static int WindBotStop()
+        {
+            try
+            {
+                return Program.StopServer();
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    Logger.WriteErrorLine("windbot_stop failed: " + ex);
+                }
+                catch
+                {
+                    Console.Error.WriteLine("windbot_stop failed: " + ex);
+                }
+
+                return 1;
+            }
+        }
+
         private static string[] SplitCommandLine(string commandLine)
         {
             if (String.IsNullOrWhiteSpace(commandLine))
