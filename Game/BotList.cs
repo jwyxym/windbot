@@ -28,6 +28,7 @@ namespace WindBot.Game
             new BotItem("谜之剑士LV4-L8", "AI_Level8", "Level VIII", "swordsman.zh-CN", (ai, duel) => new Level8Executor(ai, duel)),
             new BotItem("谜之剑士LV4-R5", "AI_Rank5", "Rank V", "swordsman.zh-CN", (ai, duel) => new Rank5Executor(ai, duel)),
             new BotItem("谜之剑士LV4-异热同心武器", "AI_ZexalWeapons", "Zexal Weapons", "swordsman.zh-CN", (ai, duel) => new ZexalWeaponsExecutor(ai, duel)),
+            new BotItem("谜之剑士LV4-1103英雄", "AI_HeroBeat1103", "HeroBeat1103", "swordsman.zh-CN", (ai, duel) => new HeroBeat1103Executor(ai, duel)),
             new BotItem("谜之剑士LV4-黑羽", "AI_Blackwing", "Blackwing", "swordsman.zh-CN", (ai, duel) => new BlackwingExecutor(ai, duel)),
             new BotItem("谜之剑士LV4-电子龙", "AI_CyberDragon", "CyberDragon", "swordsman.zh-CN", (ai, duel) => new CyberDragonExecutor(ai, duel)),
             new BotItem("谜之剑士LV4-入魔", "AI_Evilswarm", "Evilswarm", "swordsman.zh-CN", (ai, duel) => new EvilswarmExecutor(ai, duel)),
@@ -43,6 +44,7 @@ namespace WindBot.Game
             /* 复制植物 */
             new BotItem("复制植物-青眼", "AI_BlueEyes", "Blue-Eyes", "copy.zh-CN", (ai, duel) => new BlueEyesExecutor(ai, duel)),
             new BotItem("复制植物-十二兽", "AI_Zoodiac", "Zoodiac", "copy.zh-CN", (ai, duel) => new ZoodiacExecutor(ai, duel)),
+            new BotItem("复制植物-R8", "AI_Rank8", "Rank8", "copy.zh-CN", (ai, duel) => new Rank8Executor(ai, duel)),
 
             /* 尼亚 */
             new BotItem("尼亚-妖仙兽", "AI_Yosenju", "Yosenju", "near.zh-CN", (ai, duel) => new YosenjuExecutor(ai, duel)),
@@ -52,6 +54,9 @@ namespace WindBot.Game
             new BotItem("尼亚-拉比林斯迷宫", "AI_Labrynth", "Labrynth", "near.zh-CN", (ai, duel) => new LabrynthExecutor(ai, duel)),
             new BotItem("尼亚-于贝尔", "AI_Yubel", "Yubel", "near.zh-CN", (ai, duel) => new YubelExecutor(ai, duel)),
             new BotItem("尼亚-王家的神殿", "AI_Apophis", "Apophis", "near.zh-CN", (ai, duel) => new ApophisExecutor(ai, duel)),
+            new BotItem("尼亚-恶魔", "AI_Archfiend", "Archfiend", "near.zh-CN", (ai, duel) => new ArchfiendExecutor(ai, duel)),
+            new BotItem("尼亚-纠缠工", "AI_Enneacraft", "Enneacraft", "near.zh-CN", (ai, duel) => new EnneacraftExecutor(ai, duel)),
+            new BotItem("尼亚-南瓜王", "AI_Pumpking", "Pumpking", "near.zh-CN", (ai, duel) => new PumpkingExecutor(ai, duel)),
 
             /* 复制梁龙 */
             new BotItem("复制梁龙-闪刀姬", "AI_SkyStriker", "SkyStriker", "anothercopy.zh-CN", (ai, duel) => new SkyStrikerExecutor(ai, duel)),
@@ -60,6 +65,7 @@ namespace WindBot.Game
             new BotItem("复制梁龙-雷火沸动", "AI_Ryzeal", "Ryzeal", "anothercopy.zh-CN", (ai, duel) => new RyzealExecutor(ai, duel)),
             new BotItem("复制梁龙-码丽丝", "AI_Maliss", "Maliss", "anothercopy.zh-CN", (ai, duel) => new MalissExecutor(ai, duel)),
             new BotItem("复制梁龙-青眼", "AI_BE2025", "BE2025", "anothercopy.zh-CN", (ai, duel) => new BE2025Executor(ai, duel)),
+            new BotItem("复制梁龙-三幻魔", "AI_SacredBeast", "SacredBeast", "anothercopy.zh-CN", (ai, duel) => new SacredBeastExecutor(ai, duel)),
 
             /* VI-1911 */
             new BotItem("VI-1911-凭依装着", "AI_FamiliarPossessed", "FamiliarPossessed", "VI-1911.zh-CN", (ai, duel) => new FamiliarPossessedExecutor(ai, duel)),
@@ -69,6 +75,8 @@ namespace WindBot.Game
             new BotItem("永远之魂-削血", "AI_Burn", "Burn", "soul.zh-CN", (ai, duel) => new BurnExecutor(ai, duel)),
             new BotItem("永远之魂-青蛙", "AI_Frog", "Frog", "soul.zh-CN", (ai, duel) => new FrogExecutor(ai, duel)),
             new BotItem("永远之魂-荷鲁斯", "AI_Horus", "Horus", "soul.zh-CN", (ai, duel) => new HorusExecutor(ai, duel)),
+            new BotItem("永远之魂-408混沌", "AI_Chaos408", "Chaos408", "soul.zh-CN", (ai, duel) => new Chaos408Executor(ai, duel)),
+            new BotItem("永远之魂-506风帝", "AI_Monarch506", "Monarch506", "soul.zh-CN", (ai, duel) => new Monarch506Executor(ai, duel)),
             new BotItem("永远之魂-守墓", "AI_Gravekeeper", "Gravekeeper", "soul.zh-CN", (ai, duel) => new GravekeeperExecutor(ai, duel)),
 
             /* 比特机灵 */
@@ -110,6 +118,10 @@ namespace WindBot.Game
             new BotItem("今晚有宵夜吗-超重武者", "AI_SuperheavySamurai", "SuperheavySamurai", "superheavysamurai.zh-CN", (ai, duel) => new SuperheavySamuraiExecutor(ai, duel)),
             new BotItem("今晚有宵夜吗-码丽丝", "AI_MalissOCG", "MalissOCG", "Xiaoye.zh-CN", (ai, duel) => new MalissOCGExecutor(ai, duel)),
             new BotItem("今晚有宵夜吗-味美喵", "AI_Neko", "Neko", "Xiaoye.zh-CN", (ai, duel) => new NekoExecutor(ai, duel)),
+
+            /* 偷摸灵兽幽灵 */
+            new BotItem("偷摸灵兽幽灵-炽焰", "AI_RadiantTyphoon", "RadiantTyphoon", "soyorin.zh-TW", (ai, duel) => new RadiantTyphoonExecutor(ai, duel)),
+            new BotItem("偷摸灵兽幽灵-混沌仪式", "AI_ChaosRitual", "ChaosRitual", "soyorin.zh-TW", (ai, duel) => new ChaosRitualExecutor(ai, duel)),
         };
     }
 }
