@@ -21,9 +21,10 @@ namespace WindBot
 
         internal static void Main(string[] args)
         {
-            Logger.WriteLine("WindBot starting...");
-
             Config.Load(args);
+            Logger.ConsoleEnabled = Config.GetBool("ConsoleLog", true);
+
+            Logger.WriteLine("WindBot starting...");
 
             string sqlitePath = Config.GetString("SQLitePath", "./");
             string sqliteLibrary = OperatingSystem.IsWindows()

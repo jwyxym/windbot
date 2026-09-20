@@ -6,6 +6,8 @@ namespace WindBot
     {
         private static readonly object _syncRoot = new object();
 
+        public static bool ConsoleEnabled { get; set; } = true;
+
         // Each server-mode bot is driven by its own worker thread, so its log context must not be shared.
         [ThreadStatic]
         private static Func<string> _contextProvider;
@@ -22,6 +24,9 @@ namespace WindBot
 
         public static void WriteLine(string message)
         {
+            if (!ConsoleEnabled)
+                return;
+
             lock (_syncRoot)
                 Console.WriteLine("[" + DateTime.Now.ToString("yy-MM-dd HH:mm:ss") + "] " + message);
         }
@@ -29,6 +34,9 @@ namespace WindBot
         public static void DebugWriteLine(string message, bool printStackTrace = false)
         {
 #if DEBUG
+            if (!ConsoleEnabled)
+                return;
+
             lock (_syncRoot)
             {
                 Console.WriteLine("[" + DateTime.Now.ToString("yy-MM-dd HH:mm:ss") + "] " + message);
@@ -50,6 +58,9 @@ namespace WindBot
 
         private static void WriteErrorLine(string message, Exception exception, string callStack)
         {
+            if (!ConsoleEnabled)
+                return;
+
             lock (_syncRoot)
             {
                 Console.BackgroundColor = ConsoleColor.Red;
