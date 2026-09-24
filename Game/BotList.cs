@@ -66,6 +66,7 @@ namespace WindBot.Game
             new BotItem("复制梁龙-码丽丝", "AI_Maliss", "Maliss", "anothercopy.zh-CN", (ai, duel) => new MalissExecutor(ai, duel)),
             new BotItem("复制梁龙-青眼", "AI_BE2025", "BE2025", "anothercopy.zh-CN", (ai, duel) => new BE2025Executor(ai, duel)),
             new BotItem("复制梁龙-三幻魔", "AI_SacredBeast", "SacredBeast", "anothercopy.zh-CN", (ai, duel) => new SacredBeastExecutor(ai, duel)),
+            new BotItem("复制梁龙-耀圣", "AI_Elfnote", "Elfnote", "anothercopy.zh-CN", (ai, duel) => new ElfnoteExecutor(ai, duel)),
 
             /* VI-1911 */
             new BotItem("VI-1911-凭依装着", "AI_FamiliarPossessed", "FamiliarPossessed", "VI-1911.zh-CN", (ai, duel) => new FamiliarPossessedExecutor(ai, duel)),
