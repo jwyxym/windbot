@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -26,13 +26,16 @@ namespace WindBot
 
             Logger.WriteLine("WindBot starting...");
 
-            string sqlitePath = Config.GetString("SQLitePath", "./");
-            string sqliteLibrary = OperatingSystem.IsWindows()
-                ? "e_sqlite3.dll"
-                : OperatingSystem.IsMacOS()
-                    ? "libe_sqlite3.dylib"
-                    : "libe_sqlite3.so";
-            NativeLibrary.Load(Path.Combine(sqlitePath, sqliteLibrary));
+			string sqlitePath = Config.GetString("SQLitePath");
+			if (sqlitePath != null)
+			{
+				string sqliteLibrary = OperatingSystem.IsWindows()
+					? "e_sqlite3.dll"
+					: OperatingSystem.IsMacOS()
+						? "libe_sqlite3.dylib"
+						: "libe_sqlite3.so";
+				NativeLibrary.Load(Path.Combine(sqlitePath, sqliteLibrary));
+			}
 
             string databasePath = Config.GetString("DbPath", "cards.cdb");
 
