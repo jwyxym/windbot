@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Net;
-using System.Runtime.InteropServices;
 using WindBot.Game;
 using WindBot.Game.AI;
 using YGOSharp.OCGWrapper;
@@ -25,17 +24,6 @@ namespace WindBot
             Logger.ConsoleEnabled = Config.GetBool("ConsoleLog", true);
 
             Logger.WriteLine("WindBot starting...");
-
-			string sqlitePath = Config.GetString("SQLitePath");
-			if (sqlitePath != null)
-			{
-				string sqliteLibrary = OperatingSystem.IsWindows()
-					? "e_sqlite3.dll"
-					: OperatingSystem.IsMacOS()
-						? "libe_sqlite3.dylib"
-						: "libe_sqlite3.so";
-				NativeLibrary.Load(Path.Combine(sqlitePath, sqliteLibrary));
-			}
 
             string databasePath = Config.GetString("DbPath", "cards.cdb");
 
