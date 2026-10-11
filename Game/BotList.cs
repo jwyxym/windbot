@@ -55,7 +55,7 @@ namespace WindBot.Game
             new BotItem("尼亚-于贝尔", "AI_Yubel", "Yubel", "near.zh-CN", (ai, duel) => new YubelExecutor(ai, duel)),
             new BotItem("尼亚-王家的神殿", "AI_Apophis", "Apophis", "near.zh-CN", (ai, duel) => new ApophisExecutor(ai, duel)),
             new BotItem("尼亚-恶魔", "AI_Archfiend", "Archfiend", "near.zh-CN", (ai, duel) => new ArchfiendExecutor(ai, duel)),
-            new BotItem("尼亚-纠缠工", "AI_Enneacraft", "Enneacraft", "near.zh-CN", (ai, duel) => new EnneacraftExecutor(ai, duel)),
+            new BotItem("尼亚-纠罪巧", "AI_Enneacraft", "Enneacraft", "near.zh-CN", (ai, duel) => new EnneacraftExecutor(ai, duel)),
             new BotItem("尼亚-南瓜王", "AI_Pumpking", "Pumpking", "near.zh-CN", (ai, duel) => new PumpkingExecutor(ai, duel)),
 
             /* 复制梁龙 */
@@ -88,8 +88,8 @@ namespace WindBot.Game
 
             /* 奇異果 / 奇魔果 / MAX龍果 / 幻煌果 */
             new BotItem("奇異果-光道影依恐龙", "AI_LightswornShaddoldinosour", "LightswornShaddoldinosour", "kiwi.zh-TW", (ai, duel) => new LightswornShaddoldinosour(ai, duel)),
-            new BotItem("奇異果-黑魔术师", "AI_Lightsworn", "Lightsworn", "kiwi.zh-TW", (ai, duel) => new LightswornExecutor(ai, duel)),
-            new BotItem("奇魔果", "AI_DarkMagician", "DarkMagician", "kiwi.zh-TW", (ai, duel) => new DarkMagicianExecutor(ai, duel)),
+            new BotItem("奇異果-光道", "AI_Lightsworn", "Lightsworn", "kiwi.zh-TW", (ai, duel) => new LightswornExecutor(ai, duel)),
+            new BotItem("奇魔果-黑魔术师", "AI_DarkMagician", "DarkMagician", "kiwi.zh-TW", (ai, duel) => new DarkMagicianExecutor(ai, duel)),
             new BotItem("MAX龍果-青眼混沌极龙", "AI_BlueEyesMaxDragon", "BlueEyesMaxDragon", "kiwi.zh-TW", (ai, duel) => new BlueEyesMaxDragonExecutor(ai, duel)),
             new BotItem("幻煌果-幻煌龙", "AI_Phantasm", "Phantasm", "kiwi.zh-TW", (ai, duel) => new PhantasmExecutor(ai, duel)),
 
