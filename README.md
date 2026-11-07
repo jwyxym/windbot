@@ -85,7 +85,7 @@ The C ABI is declared in `native/windbot.h`:
 
 Card data can be replaced between native runs, but `windbot_load_cards` rejects replacement while any native bot is running. Managed hosts can instead call `NamedCardsManager.Init(IEnumerable<CardRecord>)` before creating bots; they must likewise avoid replacing data during duels. JSON loading uses source-generated serializers for AOT compatibility. The ABI takes serialized data, not pointers to Rust `String` or `Vec` values.
 
-Decks and dialogs are embedded directly by MSBuild. Maintain the AOT-safe factory registry in `Game/AI/DecksManager.Registry.cs` by hand: each entry defines the AI identifier, Chinese bot name, embedded deck, executor factory, level and embedded dialog. No generation script or Node.js is required. When adding an AI or changing its metadata, update the registry and its `[Deck]` declaration together. Preserve each AI's original level and the `Normal` random pool.
+Decks and dialogs are embedded directly by MSBuild. Maintain the AOT-safe factory registry in `Game/AI/DecksManager.Registry.cs` by hand: each entry defines the AI identifier, Chinese bot name, embedded deck, executor factory, level and embedded dialog. List output follows registration order: the 70 shared entries match the `ygopro3` bot list, followed by master-only `Test`, `OldSchool` and `Voiceless`. No generation script or Node.js is required. When adding an AI or changing its metadata, update the registry and its `[Deck]` declaration together. Preserve each AI's original level and the `Normal` random pool.
 
 ## TODO list
 

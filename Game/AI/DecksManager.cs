@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WindBot.Game.AI
@@ -24,20 +24,24 @@ namespace WindBot.Game.AI
         }
 
         private static Dictionary<string, DeckInstance> _decks;
-        private static List<DeckInstance> _list;
+        private static List<KeyValuePair<string, DeckInstance>> _list;
         private static Random _rand;
 
         public static void Init()
         {
             _decks = new Dictionary<string, DeckInstance>();
+            _list = new List<KeyValuePair<string, DeckInstance>>();
             _rand = Random.Shared;
 
             RegisterDecks();
 
-            _list = new List<DeckInstance>();
-            _list.AddRange(_decks.Values);
-
             Logger.WriteLine("Decks initialized, " + _decks.Count + " found.");
+        }
+
+        private static void RegisterDeck(string name, DeckInstance deck)
+        {
+            _decks.Add(name, deck);
+            _list.Add(new KeyValuePair<string, DeckInstance>(name, deck));
         }
 
         public static Executor Instantiate(GameAI ai, Duel duel)
@@ -52,7 +56,7 @@ namespace WindBot.Game.AI
             {
                 do
                 {
-                    infos = _list[_rand.Next(_list.Count)];
+                    infos = _list[_rand.Next(_list.Count)].Value;
                 }
                 while (infos.Level != "Normal");
             }
@@ -74,7 +78,7 @@ namespace WindBot.Game.AI
         internal static string[][] GetDecks()
         {
             List<string[]> decks = new List<string[]>();
-            foreach (KeyValuePair<string, DeckInstance> entry in _decks)
+            foreach (KeyValuePair<string, DeckInstance> entry in _list)
                 decks.Add(new[] { entry.Value.Name, entry.Key, entry.Value.Deck, entry.Value.Dialog, entry.Value.Level });
             return decks.ToArray();
         }
