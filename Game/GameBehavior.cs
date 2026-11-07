@@ -49,9 +49,10 @@ namespace WindBot.Game
             _duel = new Duel();
 
             _ai = new GameAI(Game, _duel);
-            _ai.Executor = DecksManager.Instantiate(_ai, _duel);
             Game.SetDeckContext(_ai.Executor.GetType().Name);
-            Deck = Deck.Load(Game.DeckFile ?? _ai.Executor.Deck);
+            Deck = Deck.Load(Game.DeckFile ?? _ai.Executor.Deck, Game.DeckFile != null);
+            if (Deck == null)
+                throw new InvalidOperationException("Cannot load deck: " + (Game.DeckFile ?? _ai.Executor.Deck));
 
             _select_hint = 0;
         }

@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Data;
+using System.Collections.Generic;
 
 namespace YGOSharp.OCGWrapper
 {
@@ -7,11 +7,15 @@ namespace YGOSharp.OCGWrapper
     {
         public string Name { get; private set; }
         public string Description { get; private set; }
+        public IReadOnlyList<string> Hint { get; private set; }
+        public uint Category { get; private set; }
 
-        internal NamedCard(IDataRecord reader) : base(reader)
+        internal NamedCard(CardRecord record) : base(record)
         {
-            Name = reader.GetString(10);
-            Description = reader.GetString(11);
+            Name = record.Name ?? String.Empty;
+            Description = record.Description ?? String.Empty;
+            Hint = Array.AsReadOnly((string[])record.Hint.Clone());
+            Category = record.Category;
         }
 
         public static new NamedCard Get(int id)

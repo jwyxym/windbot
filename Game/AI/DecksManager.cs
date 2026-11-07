@@ -1,22 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 
 namespace WindBot.Game.AI
 {
-    public static class DecksManager
+    public static partial class DecksManager
     {
         private class DeckInstance
         {
+            public string Name { get; private set; }
             public string Deck { get; private set; }
-            public Type Type { get; private set; }
+            public Func<GameAI, Duel, Executor> Factory { get; private set; }
             public string Level { get; private set; }
+            public string Dialog { get; private set; }
 
-            public DeckInstance(string deck, Type type, string level)
+            public DeckInstance(string name, string deck, Func<GameAI, Duel, Executor> factory, string level, string dialog)
             {
+                Name = name;
                 Deck = deck;
-                Type = type;
+                Factory = factory;
                 Level = level;
+                Dialog = dialog;
             }
         }
 
@@ -27,24 +30,9 @@ namespace WindBot.Game.AI
         public static void Init()
         {
             _decks = new Dictionary<string, DeckInstance>();
-            _rand = new Random();
+            _rand = Random.Shared;
 
-            Assembly asm = Assembly.GetExecutingAssembly();
-            Type[] types = asm.GetTypes();
-            
-            foreach (Type type in types)
-            {
-                MemberInfo info = type;
-                object[] attributes = info.GetCustomAttributes(false);
-                foreach (object attribute in attributes)
-                {
-                    if (attribute is DeckAttribute)
-                    {
-                        DeckAttribute deck = (DeckAttribute)attribute;
-                        _decks.Add(deck.Name, new DeckInstance(deck.File, type, deck.Level));
-                    }
-                }
-            }
+            RegisterDecks();
 
             _list = new List<DeckInstance>();
             _list.AddRange(_decks.Values);
@@ -69,14 +57,26 @@ namespace WindBot.Game.AI
                 while (infos.Level != "Normal");
             }
 
-            Executor executor = (Executor)Activator.CreateInstance(infos.Type, ai, duel);
+            Executor executor = infos.Factory(ai, duel);
             executor.Deck = infos.Deck;
+            if (String.IsNullOrEmpty(ai.Game.Username))
+                ai.Game.Username = infos.Name;
+            if (ai.Game.Dialog == null)
+                ai.Game.Dialog = infos.Dialog;
             return executor;
         }
 
         public static bool HasDeck(string name)
         {
             return _decks.ContainsKey(name);
+        }
+
+        internal static string[][] GetDecks()
+        {
+            List<string[]> decks = new List<string[]>();
+            foreach (KeyValuePair<string, DeckInstance> entry in _decks)
+                decks.Add(new[] { entry.Value.Name, entry.Key, entry.Value.Deck, entry.Value.Dialog, entry.Value.Level });
+            return decks.ToArray();
         }
     }
 }

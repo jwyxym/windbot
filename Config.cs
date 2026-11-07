@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
+using System.Collections.Concurrent;
 using System.IO;
+using System.Xml.Linq;
 
 namespace WindBot
 {
@@ -12,13 +13,13 @@ namespace WindBot
         private static char COMMENT_CHAR = '#';
 
         private static Dictionary<string, string> _fields;
-        private static Dictionary<string, int> _integerCache;
-        private static Dictionary<string, bool> _booleanCache;
+        private static ConcurrentDictionary<string, int> _integerCache;
+        private static ConcurrentDictionary<string, bool> _booleanCache;
 
         public static void Load(string[] args)
         {
-            _integerCache = new Dictionary<string, int>();
-            _booleanCache = new Dictionary<string, bool>();
+            _integerCache = new ConcurrentDictionary<string, int>();
+            _booleanCache = new ConcurrentDictionary<string, bool>();
 
             _fields = LoadArgs(args);
 
@@ -33,11 +34,12 @@ namespace WindBot
                 }
             }
 
-            foreach (string key in ConfigurationManager.AppSettings)
+            Dictionary<string, string> appSettings = LoadAppSettings();
+            foreach (var pair in appSettings)
             {
-                string normalizedKey = key.ToUpper();
+                string normalizedKey = pair.Key.ToUpper();
                 if (!_fields.ContainsKey(normalizedKey))
-                    _fields.Add(normalizedKey, ConfigurationManager.AppSettings[key]);
+                    _fields.Add(normalizedKey, pair.Value);
             }
         }
 
@@ -96,6 +98,48 @@ namespace WindBot
             return fields;
         }
 
+        private static Dictionary<string, string> LoadAppSettings()
+        {
+            Dictionary<string, string> fields = new Dictionary<string, string>();
+            foreach (string filename in GetAppConfigCandidates())
+            {
+                if (!File.Exists(filename))
+                    continue;
+
+                XDocument document = XDocument.Load(filename);
+                XElement appSettings = document.Root == null ? null : document.Root.Element("appSettings");
+                if (appSettings == null)
+                    return fields;
+
+                foreach (XElement element in appSettings.Elements("add"))
+                {
+                    XAttribute key = element.Attribute("key");
+                    XAttribute value = element.Attribute("value");
+                    if (key == null || value == null)
+                        continue;
+
+                    string normalizedKey = key.Value.Trim().ToUpper();
+                    if (!fields.ContainsKey(normalizedKey))
+                        fields.Add(normalizedKey, value.Value);
+                }
+                return fields;
+            }
+            return fields;
+        }
+
+        private static string[] GetAppConfigCandidates()
+        {
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            string assemblyName = AppDomain.CurrentDomain.FriendlyName;
+            return new string[]
+            {
+                Path.Combine(baseDirectory, assemblyName + ".config"),
+                Path.Combine(baseDirectory, "WindBot.dll.config"),
+                Path.Combine(baseDirectory, "WindBot.exe.config"),
+                Path.Combine(Directory.GetCurrentDirectory(), "App.config")
+            };
+        }
+
         public static string GetString(string key, string defaultValue = null)
         {
             key = key.ToUpper();
@@ -120,7 +164,7 @@ namespace WindBot
                 else
                     value = Convert.ToInt32(_fields[key]);
             }
-            _integerCache.Add(key, value);
+            _integerCache.TryAdd(key, value);
             return value;
         }
 
@@ -142,7 +186,7 @@ namespace WindBot
             {
                 value = Convert.ToBoolean(_fields[key]);
             }
-            _booleanCache.Add(key, value);
+            _booleanCache.TryAdd(key, value);
             return value;
         }
     }

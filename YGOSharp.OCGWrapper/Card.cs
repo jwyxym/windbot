@@ -1,5 +1,6 @@
 ﻿using YGOSharp.OCGWrapper.Enums;
-using System.Data;
+using System;
+using System.Collections.Generic;
 
 namespace YGOSharp.OCGWrapper
 {
@@ -25,6 +26,7 @@ namespace YGOSharp.OCGWrapper
         public int Ot { get; private set; }
         public int Alias { get; private set; }
         public long Setcode { get; private set; }
+        public IReadOnlyList<ushort> Setcodes { get; private set; }
         public int Type { get; private set; }
 
         public int Level { get; private set; }
@@ -51,14 +53,11 @@ namespace YGOSharp.OCGWrapper
 
         public bool HasSetcode(int setcode)
         {
-            long setcodes = Setcode;
             int settype = setcode & 0xfff;
             int setsubtype = setcode & 0xf000;
-            while (setcodes > 0)
+            foreach (ushort check_setcode in Setcodes)
             {
-                long check_setcode = setcodes & 0xffff;
-                setcodes >>= 16;
-                if ((check_setcode & 0xfff) == settype && (check_setcode & 0xf000 & setsubtype) == setsubtype) return true;
+                if (check_setcode != 0 && (check_setcode & 0xfff) == settype && (check_setcode & 0xf000 & setsubtype) == setsubtype) return true;
             }
             return false;
         }
@@ -68,29 +67,25 @@ namespace YGOSharp.OCGWrapper
             return (HasType(CardType.Fusion) || HasType(CardType.Synchro) || HasType(CardType.Xyz) || HasType(CardType.Link));
         }
 
-        internal Card(IDataRecord reader)
+        internal Card(CardRecord record)
         {
-            Id = reader.GetInt32(0);
-            Ot = reader.GetInt32(1);
-            Alias = reader.GetInt32(2);
-            Setcode = reader.GetInt64(3);
-            Type = reader.GetInt32(4);
-
-            int levelInfo = reader.GetInt32(5);
-            Level = levelInfo & 0xff;
-            LScale = (levelInfo >> 24) & 0xff;
-            RScale = (levelInfo >> 16) & 0xff;
-
-            Race = reader.GetInt32(6);
-            Attribute = reader.GetInt32(7);
-            Attack = reader.GetInt32(8);
-            Defense = reader.GetInt32(9);
-
-            if (HasType(CardType.Link))
-            {
-                LinkMarker = Defense;
-                Defense = 0;
-            }
+            Id = (int)record.Code;
+            Ot = record.Ot;
+            Alias = (int)record.Alias;
+            Setcodes = Array.AsReadOnly((ushort[])record.Setcode.Clone());
+            ulong packedSetcode = 0;
+            for (int i = 0; i < 4; ++i)
+                packedSetcode |= (ulong)record.Setcode[i] << (16 * i);
+            Setcode = unchecked((long)packedSetcode);
+            Type = unchecked((int)record.CardType);
+            Level = (int)record.Level;
+            LScale = (int)record.LScale;
+            RScale = (int)record.RScale;
+            Race = unchecked((int)record.Race);
+            Attribute = unchecked((int)record.Attribute);
+            Attack = record.Attack;
+            Defense = record.Defense;
+            LinkMarker = unchecked((int)record.LinkMarker);
 
             Data = new CardData()
             {

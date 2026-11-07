@@ -21,7 +21,7 @@ namespace WindBot
 
             Config.Load(args);
 
-            string databasePath = Config.GetString("DbPath", "cards.cdb");
+            string databasePath = Config.GetString("CardDataPath", "cards.json");
 
             InitDatas(databasePath);
 
@@ -48,24 +48,10 @@ namespace WindBot
 
         public static void InitDatas(string databasePath)
         {
-            Rand = new Random();
+            Rand = Random.Shared;
             DecksManager.Init();
-            string absolutePath = Path.GetFullPath(databasePath);
-            if (!File.Exists(absolutePath))
-                // In case windbot is placed in a folder under ygopro folder
-                absolutePath = Path.GetFullPath("../" + databasePath);
-            if (!File.Exists(absolutePath))
-                // In case windbot is placed in a folder under ygopro2 folder
-                absolutePath = Path.GetFullPath("../cdb/" + databasePath);
-            if (!File.Exists(absolutePath))
-            {
-                Logger.WriteErrorLine("Can't find cards database file.", null);
-                Logger.WriteErrorLine("Please place cards.cdb next to WindBot.exe or Bot.exe .", null);
-                Logger.WriteLine("Press any key to quit...");
-                Console.ReadKey();
-                System.Environment.Exit(1);
-            }
-            NamedCardsManager.Init(absolutePath);
+            if (!NamedCardsManager.IsInitialized)
+                NamedCardsManager.InitJson(File.ReadAllBytes(databasePath));
         }
 
         private static void RunFromArgs()
@@ -128,7 +114,7 @@ namespace WindBot
                     if (chat != null)
                         Info.Chat = bool.Parse(chat);
 
-                    if (Info.Name == null || Info.Host == null || port == null || deckfile != null)
+                    if (Info.Host == null || port == null || deckfile != null)
                     {
                         ctx.Response.StatusCode = 400;
                         ctx.Response.Close();
@@ -168,11 +154,16 @@ namespace WindBot
 
         private static void Run(object o)
         {
+            RunBot((WindBotInfo)o);
+        }
+
+        internal static int RunBot(WindBotInfo info)
+        {
             // All errors should be caught instead of causing the program to crash.
             GameClient client = null;
             try
             {
-                WindBotInfo Info = (WindBotInfo)o;
+                WindBotInfo Info = info;
                 client = new GameClient(Info);
                 Logger.SetContext(client.GetLogContext);
                 client.Start();
@@ -196,12 +187,14 @@ namespace WindBot
                     }
                 }
                 Logger.DebugWriteLine(client.Username + " end.");
+                return 0;
             }
             catch (Exception ex)
             {
                 if (Debugger.IsAttached)
                     throw;
                 Logger.WriteErrorLine("Run Error", ex);
+                return 1;
             }
             finally
             {

@@ -1,68 +1,52 @@
-﻿using System.Collections.Generic;
-using System.Data;
-using Mono.Data.Sqlite;
 using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 
 namespace YGOSharp.OCGWrapper
 {
     public static class NamedCardsManager
     {
-        private static IDictionary<int, NamedCard> _cards;
+        private static IDictionary<int, NamedCard> _cards = new Dictionary<int, NamedCard>();
 
-        public static void Init(string databaseFullPath)
+        public static bool IsInitialized { get { return _cards.Count > 0; } }
+
+        public static void Init(IEnumerable<CardRecord> records)
         {
-            try
+            if (records == null)
+                throw new ArgumentNullException("records");
+            Dictionary<int, NamedCard> cards = new Dictionary<int, NamedCard>();
+            foreach (CardRecord record in records)
             {
-                if (!File.Exists(databaseFullPath))
-                {
-                    throw new Exception("Could not find the cards database.");
-                }
-
-                _cards = new Dictionary<int, NamedCard>();
-
-                using (SqliteConnection connection = new SqliteConnection("Data Source=" + databaseFullPath))
-                {
-                    connection.Open();
-
-                    using (IDbCommand command = new SqliteCommand(
-                        "SELECT datas.id, ot, alias, setcode, type, level, race, attribute, atk, def, texts.name, texts.desc"
-                        + " FROM datas INNER JOIN texts ON datas.id = texts.id",
-                        connection))
-                    {
-                        using (IDataReader reader = command.ExecuteReader())
-                        {
-                            while (reader.Read())
-                            {
-                                LoadCard(reader);
-                            }
-                        }
-                    }
-                }
+                if (record == null || record.Code == 0 || record.Code > Int32.MaxValue
+                    || record.Alias > Int32.MaxValue || record.Level > 255
+                    || record.LScale > 255 || record.RScale > 255
+                    || record.Setcode == null || record.Setcode.Length != 16
+                    || record.Hint == null || record.Hint.Length != 16)
+                    throw new ArgumentException("Invalid ygopro_cdb_reader::Card record.", "records");
+                NamedCard card = new NamedCard(record);
+                cards[card.Id] = card;
             }
-            catch (Exception ex)
-            {
-                throw new Exception("Could not initialize the cards database. Check the inner exception for more details.", ex);
-            }
+            if (cards.Count == 0)
+                throw new ArgumentException("The card collection must not be empty.", "records");
+            // Publish only after the entire batch has been validated and copied.
+            _cards = cards;
+        }
+
+        public static void InitJson(byte[] utf8Json)
+        {
+            Init(JsonSerializer.Deserialize(utf8Json, CardRecordJsonContext.Default.CardRecordArray));
         }
 
         internal static NamedCard GetCard(int id)
         {
-            if (_cards.ContainsKey(id))
-                return _cards[id];
-            return null;
+            NamedCard card;
+            return _cards.TryGetValue(id, out card) ? card : null;
         }
 
         public static IList<NamedCard> GetAllCards()
         {
             return _cards.Values.ToList();
-        }
-
-        private static void LoadCard(IDataRecord reader)
-        {
-            NamedCard card = new NamedCard(reader);
-            _cards.Add(card.Id, card);
         }
     }
 }

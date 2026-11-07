@@ -1,0 +1,62 @@
+name: NativeAOT static libraries
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dotnet-native-static]
+  pull_request:
+
+jobs:
+  publish:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-2022, rid: win-x64 }
+          - { os: windows-2022, rid: win-arm64 }
+          - { os: ubuntu-22.04, rid: linux-x64 }
+          - { os: ubuntu-24.04-arm, rid: linux-arm64 }
+          - { os: macos-14, rid: osx-x64 }
+          - { os: macos-14, rid: osx-arm64 }
+          - { os: macos-14, rid: ios-arm64 }
+          - { os: macos-14, rid: iossimulator-arm64 }
+          - { os: macos-14, rid: iossimulator-x64 }
+          - { os: ubuntu-22.04, rid: linux-bionic-arm }
+          - { os: ubuntu-22.04, rid: linux-bionic-arm64 }
+          - { os: ubuntu-22.04, rid: linux-bionic-x64 }
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Install Linux toolchain
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+      - name: Select Android NDK toolchain
+        if: startsWith(matrix.rid, 'linux-bionic-')
+        shell: bash
+        run: |
+          android_toolchain="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          test -x "$android_toolchain/bin/clang"
+          test -x "$android_toolchain/bin/llvm-ar"
+          echo "$android_toolchain/bin" >> "$GITHUB_PATH"
+      - name: Publish Android static library
+        if: startsWith(matrix.rid, 'linux-bionic-')
+        shell: bash
+        run: |
+          android_toolchain="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
+          dotnet publish WindBot.csproj -c Release -r ${{ matrix.rid }} \
+            -p:NativeLib=Static \
+            -p:SysRoot="$android_toolchain/sysroot" \
+            -p:CppCompilerAndLinker="$android_toolchain/bin/clang" \
+            -p:CppLibCreator="$android_toolchain/bin/llvm-ar" \
+            -o artifacts/native/${{ matrix.rid }}
+      - name: Publish static library
+        if: ${{ !startsWith(matrix.rid, 'linux-bionic-') }}
+        run: dotnet publish WindBot.csproj -c Release -r ${{ matrix.rid }} -p:NativeLib=Static -o artifacts/native/${{ matrix.rid }}
+      - uses: actions/upload-artifact@v6
+        with:
+          name: windbot-${{ matrix.rid }}-static
+          path: artifacts/native/${{ matrix.rid }}/
+          if-no-files-found: error

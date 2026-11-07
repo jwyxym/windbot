@@ -21,6 +21,7 @@ namespace WindBot.Game
         public string Deck;
         public string DeckFile;
         public string Dialog;
+        internal bool ExternalDialog { get; private set; }
         public int Hand;
         public bool Debug;
         public bool _chat;
@@ -39,6 +40,7 @@ namespace WindBot.Game
             Deck = Info.Deck;
             DeckFile = Info.DeckFile;
             Dialog = Info.Dialog;
+            ExternalDialog = Info.Dialog != null;
             Hand = Info.Hand;
             Debug = Info.Debug;
             _chat = Info.Chat;

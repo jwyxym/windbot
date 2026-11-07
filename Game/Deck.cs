@@ -38,12 +38,12 @@ namespace WindBot.Game
                 Cards.Add(card);
         }
 
-        public static Deck Load(string name)
+        public static Deck Load(string name, bool external = false)
         {
             StreamReader reader = null;
             try
             {
-                reader = new StreamReader(Program.ReadFile("Decks", name, "ydk"));
+                reader = new StreamReader(BuiltInResources.Open("Decks", name, "ydk", external));
 
                 Deck deck = new Deck();
                 bool side = false;

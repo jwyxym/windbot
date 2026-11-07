@@ -17,10 +17,10 @@ namespace WindBot
         public bool Chat { get; set; }
         public WindBotInfo()
         {
-            Name = "WindBot";
+            Name = null;
             Deck = null;
             DeckFile = null;
-            Dialog = "default";
+            Dialog = null;
             Host = "127.0.0.1";
             Port = 7911;
             HostInfo = "";

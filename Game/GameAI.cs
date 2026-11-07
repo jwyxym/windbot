@@ -28,8 +28,9 @@ namespace WindBot.Game
             Game = game;
             Duel = duel;
 
-            _dialogs = new Dialogs(game);
             _activatedCards = new Dictionary<int, int>();
+            Executor = DecksManager.Instantiate(this, duel);
+            _dialogs = new Dialogs(game);
         }
 
         private void CheckSurrender()
