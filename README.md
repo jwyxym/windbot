@@ -123,9 +123,11 @@ Use this dependency from another Rust project:
 windbot = { path = "path/to/windbot/rust/windbot" }
 ```
 
-The API provides `list_bots_json()`, `load_cards_json(&bytes)` and blocking `run(Some(options_json))`. `run(None)` passes `{}` to use the default bot options. Call `load_cards_json` before starting bots and run each bot on a worker thread. Returned native strings are copied and freed automatically.
+The API provides `list_bots_json()`, `load_cards_json(&cards)` (accepting `&Vec<Card>` from `ygopro_cdb_reader`, also re-exported as `windbot::Card`) and blocking `run(Some(options_json))`. The Rust wrapper serializes cards to JSON before calling the native library. `run(None)` passes `{}` to use the default bot options. Call `load_cards_json` before starting bots and run each bot on a worker thread. Returned native strings are copied and freed automatically.
 
 Install the matching Rust target and select it using Cargo's `--target`. Apple targets require a macOS host with Xcode command line tools; the script selects the macOS/device/simulator SDK and its Swift library search path. Windows requires MSVC and `RUSTFLAGS="-C target-feature=+crt-static"` for the whole consuming application. Linux and Android require a linker/sysroot matching the target; configure Cargo's target linker separately (Android: NDK clang). To select an archiver, set `AR_<target_with_underscores>`, `TARGET_AR` or `AR`; otherwise the script uses LLVM ar, MSVC lib.exe or system ar.
+
+All `.obj` and `.o` dependencies in the manifest (including `bootstrapperdll.obj` and Windows `dllmain.obj`) are checked for the target architecture, archived separately and linked with whole-archive retention so they propagate to consuming Rust crates.
 
 The native CI runs `cargo check --all-targets` for every RID against the artifact it just published. This validates build-script execution and Rust source, not the final executable link. The `list` example calls into NativeAOT and is provided for final-link/runtime verification. `cargo check --manifest-path rust/windbot/Cargo.toml --no-default-features --all-targets` checks source without native artifacts; do not disable default features in a real application. Final linking and runtime behavior still need verification on each platform; a macOS artifact cannot be executed on the Windows development host.
 

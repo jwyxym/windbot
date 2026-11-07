@@ -86,7 +86,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	println!("cargo:rustc-link-search=native={}", output.display());
 
 	// Bundle native libraries into the rlib so downstream crates inherit them.
-	// Whole-archive retains WindBot's module data and the bootstrapper constructor.
+	// Whole-archive retains WindBot's module data and native initialization objects.
 	println!("cargo:rerun-if-changed={}", windbot.display());
 	fs::copy(&windbot, output.join(if windows { "windbot_native.lib" } else { "libwindbot_native.a" }))?;
 	println!("cargo:rustc-link-lib=static:+whole-archive=windbot_native");
@@ -119,10 +119,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 			let source: PathBuf = native.join(relative);
 			println!("cargo:rerun-if-changed={}", source.display());
 			let filename: &str = relative.file_name().and_then(|name: &OsStr| name.to_str()).ok_or("Invalid dependency filename")?;
-			if line == bootstrapper_name {
-				archive_bootstrapper(&source, &output, &target, windows)?;
-				println!("cargo:rustc-link-lib=static:+whole-archive=windbot_bootstrapper");
-				has_bootstrapper = true;
+			if filename.ends_with(".obj") || filename.ends_with(".o") {
+				if line != bootstrapper_name {
+					let object: Vec<u8> = fs::read(&source)?;
+					validate_architecture(&object, rid)?;
+				}
+				let stem: &str = relative.file_stem().and_then(|name: &OsStr| name.to_str()).ok_or("Invalid object filename")?;
+				let name: String = format!("windbot_object_{stem}");
+				validate_name(&name)?;
+				archive_object(&source, &output, &target, windows, &name)?;
+				println!("cargo:rustc-link-lib=static:+whole-archive={name}");
+				has_bootstrapper |= line == bootstrapper_name;
 			} else {
 				let name: &str = if windows && filename.ends_with(".lib") {
 					&filename[..filename.len() - 4]
@@ -159,7 +166,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 	Ok(())
 }
 
-fn archive_bootstrapper(source: &Path, output: &Path, target: &str, windows: bool) -> Result<(), Box<dyn Error>> {
+fn archive_object(source: &Path, output: &Path, target: &str, windows: bool, library: &str) -> Result<(), Box<dyn Error>> {
 	let target_key: String = format!("AR_{}", target.replace('-', "_"));
 	println!("cargo:rerun-if-env-changed={target_key}");
 	let archiver_override: Option<OsString> = env::var_os(&target_key)
@@ -183,7 +190,7 @@ fn archive_bootstrapper(source: &Path, output: &Path, target: &str, windows: boo
 		None => OsString::from("ar"),
 	};
 	let name: String = Path::new(&archiver).file_stem().and_then(|value: &OsStr| value.to_str()).unwrap_or("").to_ascii_lowercase();
-	let archive: PathBuf = output.join(if windows { "windbot_bootstrapper.lib" } else { "libwindbot_bootstrapper.a" });
+	let archive: PathBuf = output.join(if windows { format!("{library}.lib") } else { format!("lib{library}.a") });
 	if name == "lib" || name == "llvm-lib" {
 		run(Command::new(archiver).arg("/NOLOGO").arg(format!("/OUT:{}", archive.display())).arg(source))?;
 	} else {

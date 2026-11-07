@@ -6,6 +6,7 @@ use std::{
 	ffi::{CStr, c_char, c_void},
 	fmt,
 };
+pub use ygopro_cdb_reader::Card;
 
 mod ffi {
 	use super::{c_char, c_void};
@@ -30,10 +31,12 @@ impl fmt::Display for WindBotError {
 
 impl Error for WindBotError {}
 
-/// Replaces the global card database from serde_json::to_vec(&Vec<Card>).
+/// Serializes the supplied cards to JSON and replaces the global card database.
 /// Call before starting bots. Replacement fails while any bot is running.
-pub fn load_cards_json(cards: &[u8]) -> Result<(), WindBotError> {
-	let status: i32 = unsafe { ffi::windbot_load_cards(cards.as_ptr(), cards.len()) };
+pub fn load_cards_json(cards: &Vec<Card>) -> Result<(), WindBotError> {
+	let json: Vec<u8> = serde_json::to_vec(cards)
+		.map_err(|error: serde_json::Error| WindBotError(error.to_string()))?;
+	let status: i32 = unsafe { ffi::windbot_load_cards(json.as_ptr(), json.len()) };
 	check_status(status)
 }
 

@@ -6,6 +6,10 @@ rust-version = "1.85"
 links = "windbot_native"
 publish = false
 
+[dependencies]
+serde_json = "1.0"
+ygopro_cdb_reader = "0.1.6"
+
 [features]
 default = ["link-native"]
 # Disabling this feature is for cargo check only; FFI symbols remain unresolved.
