@@ -48,6 +48,11 @@ jobs:
           esac
           rust_target='${{ matrix.rust-target }}'
           rust_target="${rust_target//-/_}"
+          test -x "$android_toolchain/bin/$android_clang"
+          test -x "$android_toolchain/bin/${android_clang}++"
+          echo "CC_${rust_target}=$android_toolchain/bin/$android_clang" >> "$GITHUB_ENV"
+          echo "CXX_${rust_target}=$android_toolchain/bin/${android_clang}++" >> "$GITHUB_ENV"
+          echo "AR_${rust_target}=$android_toolchain/bin/llvm-ar" >> "$GITHUB_ENV"
           echo "CARGO_TARGET_${rust_target^^}_LINKER=$android_toolchain/bin/$android_clang" >> "$GITHUB_ENV"
       - name: Publish Android static library
         if: startsWith(matrix.rid, 'linux-bionic-')
