@@ -17,11 +17,11 @@ jobs:
           - { os: windows-2022, rid: win-arm64 }
           - { os: ubuntu-22.04, rid: linux-x64 }
           - { os: ubuntu-24.04-arm, rid: linux-arm64 }
-          - { os: macos-14, rid: osx-x64 }
-          - { os: macos-14, rid: osx-arm64 }
-          - { os: macos-14, rid: ios-arm64 }
-          - { os: macos-14, rid: iossimulator-arm64 }
-          - { os: macos-14, rid: iossimulator-x64 }
+          - { os: macos-latest, rid: osx-x64 }
+          - { os: macos-latest, rid: osx-arm64 }
+          - { os: macos-latest, rid: ios-arm64 }
+          - { os: macos-latest, rid: iossimulator-arm64 }
+          - { os: macos-latest, rid: iossimulator-x64 }
           - { os: ubuntu-22.04, rid: linux-bionic-arm }
           - { os: ubuntu-22.04, rid: linux-bionic-arm64 }
           - { os: ubuntu-22.04, rid: linux-bionic-x64 }
