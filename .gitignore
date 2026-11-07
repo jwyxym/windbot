@@ -162,3 +162,4 @@ $RECYCLE.BIN/
 .DS_Store
 
 artifacts/
+/rust/windbot/target/

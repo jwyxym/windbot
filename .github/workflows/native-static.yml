@@ -13,18 +13,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-2022, rid: win-x64 }
-          - { os: windows-2022, rid: win-arm64 }
-          - { os: ubuntu-22.04, rid: linux-x64 }
-          - { os: ubuntu-24.04-arm, rid: linux-arm64 }
-          - { os: macos-latest, rid: osx-x64 }
-          - { os: macos-latest, rid: osx-arm64 }
-          - { os: macos-latest, rid: ios-arm64 }
-          - { os: macos-latest, rid: iossimulator-arm64 }
-          - { os: macos-latest, rid: iossimulator-x64 }
-          - { os: ubuntu-22.04, rid: linux-bionic-arm }
-          - { os: ubuntu-22.04, rid: linux-bionic-arm64 }
-          - { os: ubuntu-22.04, rid: linux-bionic-x64 }
+          - { os: windows-2022, rid: win-x64, rust-target: x86_64-pc-windows-msvc }
+          - { os: windows-2022, rid: win-arm64, rust-target: aarch64-pc-windows-msvc }
+          - { os: ubuntu-22.04, rid: linux-x64, rust-target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-24.04-arm, rid: linux-arm64, rust-target: aarch64-unknown-linux-gnu }
+          - { os: macos-latest, rid: osx-x64, rust-target: x86_64-apple-darwin }
+          - { os: macos-latest, rid: osx-arm64, rust-target: aarch64-apple-darwin }
+          - { os: macos-latest, rid: ios-arm64, rust-target: aarch64-apple-ios }
+          - { os: macos-latest, rid: iossimulator-arm64, rust-target: aarch64-apple-ios-sim }
+          - { os: macos-latest, rid: iossimulator-x64, rust-target: x86_64-apple-ios }
+          - { os: ubuntu-22.04, rid: linux-bionic-arm, rust-target: armv7-linux-androideabi }
+          - { os: ubuntu-22.04, rid: linux-bionic-arm64, rust-target: aarch64-linux-android }
+          - { os: ubuntu-22.04, rid: linux-bionic-x64, rust-target: x86_64-linux-android }
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-dotnet@v4
@@ -41,6 +41,14 @@ jobs:
           test -x "$android_toolchain/bin/clang"
           test -x "$android_toolchain/bin/llvm-ar"
           echo "$android_toolchain/bin" >> "$GITHUB_PATH"
+          case '${{ matrix.rid }}' in
+            linux-bionic-arm) android_clang=armv7a-linux-androideabi21-clang ;;
+            linux-bionic-arm64) android_clang=aarch64-linux-android21-clang ;;
+            linux-bionic-x64) android_clang=x86_64-linux-android21-clang ;;
+          esac
+          rust_target='${{ matrix.rust-target }}'
+          rust_target="${rust_target//-/_}"
+          echo "CARGO_TARGET_${rust_target^^}_LINKER=$android_toolchain/bin/$android_clang" >> "$GITHUB_ENV"
       - name: Publish Android static library
         if: startsWith(matrix.rid, 'linux-bionic-')
         shell: bash
@@ -55,6 +63,16 @@ jobs:
       - name: Publish static library
         if: ${{ !startsWith(matrix.rid, 'linux-bionic-') }}
         run: dotnet publish WindBot.csproj -c Release -r ${{ matrix.rid }} -p:NativeLib=Static -o artifacts/native/${{ matrix.rid }}
+      - name: Record native target
+        shell: bash
+        run: printf '%s\n' '${{ matrix.rid }}' > artifacts/native/${{ matrix.rid }}/native-rid.txt
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.rust-target }}
+      - name: Check Rust library against native artifact
+        env:
+          WINDBOT_NATIVE_DIR: ${{ github.workspace }}/artifacts/native/${{ matrix.rid }}
+          RUSTFLAGS: ${{ startsWith(matrix.rid, 'win-') && '-C target-feature=+crt-static' || '' }}
+        run: cargo check --manifest-path rust/windbot/Cargo.toml --target ${{ matrix.rust-target }} --all-targets
       - uses: actions/upload-artifact@v6
         with:
           name: windbot-${{ matrix.rid }}-static

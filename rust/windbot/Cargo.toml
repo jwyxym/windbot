@@ -1,0 +1,12 @@
+[package]
+name = "windbot"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+links = "windbot_native"
+publish = false
+
+[features]
+default = ["link-native"]
+# Disabling this feature is for cargo check only; FFI symbols remain unresolved.
+link-native = []
