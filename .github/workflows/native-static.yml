@@ -54,30 +54,21 @@ jobs:
           echo "CXX_${rust_target}=$android_toolchain/bin/${android_clang}++" >> "$GITHUB_ENV"
           echo "AR_${rust_target}=$android_toolchain/bin/llvm-ar" >> "$GITHUB_ENV"
           echo "CARGO_TARGET_${rust_target^^}_LINKER=$android_toolchain/bin/$android_clang" >> "$GITHUB_ENV"
-      - name: Publish Android static library
-        if: startsWith(matrix.rid, 'linux-bionic-')
-        shell: bash
-        run: |
-          android_toolchain="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64"
-          dotnet publish WindBot.csproj -c Release -r ${{ matrix.rid }} \
-            -p:NativeLib=Static \
-            -p:SysRoot="$android_toolchain/sysroot" \
-            -p:CppCompilerAndLinker="$android_toolchain/bin/clang" \
-            -p:CppLibCreator="$android_toolchain/bin/llvm-ar" \
-            -o artifacts/native/${{ matrix.rid }}
-      - name: Publish static library
-        if: ${{ !startsWith(matrix.rid, 'linux-bionic-') }}
-        run: dotnet publish WindBot.csproj -c Release -r ${{ matrix.rid }} -p:NativeLib=Static -o artifacts/native/${{ matrix.rid }}
-      - name: Record native target
-        shell: bash
-        run: printf '%s\n' '${{ matrix.rid }}' > artifacts/native/${{ matrix.rid }}/native-rid.txt
       - name: Install Rust target
         run: rustup target add ${{ matrix.rust-target }}
-      - name: Check Rust library against native artifact
+      - name: Check Rust library and compile bundled C# sources
         env:
-          WINDBOT_NATIVE_DIR: ${{ github.workspace }}/artifacts/native/${{ matrix.rid }}
+          CARGO_TARGET_DIR: ${{ github.workspace }}/artifacts/cargo
           RUSTFLAGS: ${{ startsWith(matrix.rid, 'win-') && '-C target-feature=+crt-static' || '' }}
-        run: cargo check --manifest-path rust/windbot/Cargo.toml --target ${{ matrix.rust-target }} --all-targets
+        run: cargo check --target ${{ matrix.rust-target }} --all-targets
+      - name: Collect NativeAOT artifact from Cargo output
+        shell: bash
+        run: |
+          shopt -s nullglob
+          native_dirs=(artifacts/cargo/${{ matrix.rust-target }}/debug/build/windbot-*/out/native-built)
+          test "${#native_dirs[@]}" -eq 1
+          mkdir -p artifacts/native/${{ matrix.rid }}
+          cp -R "${native_dirs[0]}/." artifacts/native/${{ matrix.rid }}/
       - uses: actions/upload-artifact@v6
         with:
           name: windbot-${{ matrix.rid }}-static

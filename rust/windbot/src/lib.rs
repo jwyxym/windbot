@@ -1,5 +1,5 @@
-//! Rust interface to the precompiled WindBot NativeAOT library.
-//! build.rs selects a CI static artifact using Cargo's target triple.
+//! Rust interface to WindBot, compiled from the bundled C# sources with NativeAOT.
+//! build.rs selects a .NET RID using Cargo's target triple; prebuilt overrides are optional.
 
 use std::{
 	error::Error,

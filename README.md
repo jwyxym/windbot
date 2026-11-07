@@ -97,7 +97,7 @@ Decks and dialogs are embedded directly by MSBuild. Maintain the AOT-safe factor
 
 ## Rust library
 
-`rust/windbot` wraps the existing C ABI without building C# or installing .NET. `build.rs` maps Cargo's `TARGET` to all 12 RIDs in the native CI matrix:
+The repository root is a Cargo library package. It includes the C# sources, `.ydk` decks and JSON dialogs; Rust code remains under `rust/windbot`. By default, `build.rs` invokes `dotnet publish -p:NativeLib=Static` for Cargo's `TARGET`, then bundles the native libraries into the Rust library. Building from source requires the .NET 10 SDK and the target's native toolchain; the final application does not require a separate .NET installation. All 12 RIDs in the native CI matrix are mapped:
 
 | Rust target | Native artifact RID |
 | --- | --- |
@@ -114,22 +114,28 @@ Decks and dialogs are embedded directly by MSBuild. Maintain the AOT-safe factor
 | `aarch64-linux-android` | `linux-bionic-arm64` |
 | `x86_64-linux-android` | `linux-bionic-x64` |
 
-Place the matching `windbot-<RID>-static.zip` in the repository root (for example, `windbot-osx-x64-static.zip`). `build.rs` extracts it under Cargo's `OUT_DIR`, checks the bootstrapper CPU architecture and optional `native-rid.txt`, reads `native-dependencies.txt`, bundles the native archives and bootstrapper into the Rust library, and adds the listed system libraries and Apple frameworks. Alternatively, set `WINDBOT_NATIVE_DIR` to an already extracted directory containing `WindBot.a` (Windows: `WindBot.lib`), `runtime/` and `native-dependencies.txt`. The artifact must be from a trusted build. Extraction uses Windows tar or Unix unzip. Nothing downloads or compiles .NET during Cargo builds.
+All .NET intermediates and published native files are written under Cargo's `OUT_DIR`; the package source directory is not used for build outputs. C# source, deck and dialog changes trigger a rebuild. `Cargo.toml` explicitly includes these sources and resources in the `.crate` package, without CI ZIPs or build outputs. The source package is prepared for packaging but retains `publish = false`; nothing is published automatically.
+
+Unchanged C# inputs do not trigger another `dotnet publish`. Cargo watches source/resource inputs and compiler environment settings, and the build script does not watch its own generated native files. If the script reruns, a content fingerprint of C# inputs, resources and publish settings reuses complete cached native output when unchanged, including when an input is touched without changing its contents. Rust-only source edits do not require republishing C#. A different target/build-output directory or cleared native outputs requires a fresh native build. Clear the Cargo outputs when deliberately forcing a rebuild after an SDK/toolchain upgrade.
+
+To use existing CI artifacts without running .NET, set `WINDBOT_NATIVE_DIR` to an absolute path containing extracted `WindBot.a` (Windows: `WindBot.lib`), `runtime/` and `native-dependencies.txt`, or set `WINDBOT_NATIVE_ARCHIVE` to the absolute path of a matching `windbot-<RID>-static.zip`. The directory override takes precedence over the ZIP override. ZIPs are extracted under `OUT_DIR` using Windows tar or Unix unzip. The script checks native object architectures, the Apple platform and optional `native-rid.txt`, reads `native-dependencies.txt`, and adds the listed system libraries and Apple frameworks. Use artifacts from a trusted build.
 
 Use this dependency from another Rust project:
 
 ```toml
 [dependencies]
-windbot = { path = "path/to/windbot/rust/windbot" }
+windbot = { path = "path/to/windbot" }
 ```
 
 The API provides `list_bots_json()`, `load_cards_json(&cards)` (accepting `&Vec<Card>` from `ygopro_cdb_reader`, also re-exported as `windbot::Card`) and blocking `run(Some(options_json))`. The Rust wrapper serializes cards to JSON before calling the native library. `run(None)` passes `{}` to use the default bot options. Call `load_cards_json` before starting bots and run each bot on a worker thread. Returned native strings are copied and freed automatically.
 
-Install the matching Rust target and select it using Cargo's `--target`. Apple targets require a macOS host with Xcode command line tools; the script selects the macOS/device/simulator SDK and its Swift library search path. Windows requires MSVC and `RUSTFLAGS="-C target-feature=+crt-static"` for the whole consuming application. Linux and Android require a linker/sysroot matching the target; configure Cargo's target linker separately (Android: NDK clang). To select an archiver, set `AR_<target_with_underscores>`, `TARGET_AR` or `AR`; otherwise the script uses LLVM ar, MSVC lib.exe or system ar.
+Install the matching Rust target and select it using Cargo's `--target`. Apple targets require a macOS host with Xcode command line tools; the script selects the macOS/device/simulator SDK and its Swift library search path. Windows requires MSVC and `RUSTFLAGS="-C target-feature=+crt-static"` for the whole consuming application. Linux and Android require a linker/sysroot matching the target; configure Cargo's target linker separately (Android: NDK clang). Android source builds locate the NDK through `ANDROID_NDK_HOME` or `ANDROID_NDK_ROOT` and pass its clang, llvm-ar and sysroot to .NET. Rust dependencies that compile C/C++ also need the target-specific `CC`, `CXX` and `AR` variables, as configured in CI. To select the Rust native-object archiver, set `AR_<target_with_underscores>`, `TARGET_AR` or `AR`; otherwise the script uses LLVM ar, MSVC lib.exe or system ar.
+
+Advanced source-build overrides are `WINDBOT_DOTNET` (dotnet executable), `WINDBOT_CPP_COMPILER`, `WINDBOT_CPP_LIB_CREATOR` and `WINDBOT_SYSROOT` (MSBuild native toolchain properties). Rust source and examples are configured by the root `Cargo.toml`; the former `rust/windbot/Cargo.toml` has moved to the root.
 
 All `.obj` and `.o` dependencies in the manifest (including `bootstrapperdll.obj` and Windows `dllmain.obj`) are checked for the target architecture, archived separately and linked with whole-archive retention so they propagate to consuming Rust crates.
 
-The native CI runs `cargo check --all-targets` for every RID against the artifact it just published. This validates build-script execution and Rust source, not the final executable link. The `list` example calls into NativeAOT and is provided for final-link/runtime verification. `cargo check --manifest-path rust/windbot/Cargo.toml --no-default-features --all-targets` checks source without native artifacts; do not disable default features in a real application. Final linking and runtime behavior still need verification on each platform; a macOS artifact cannot be executed on the Windows development host.
+The native CI runs `cargo check --all-targets` for every target; its build script compiles the bundled C# sources, and CI collects the resulting native artifact from Cargo's output directory. This validates source compilation, build-script execution and Rust source, not the final executable link. The `list` example calls into NativeAOT and is provided for final-link/runtime verification. `cargo check --no-default-features --all-targets` checks Rust source without compiling C# or linking native artifacts; do not disable default features in a real application. Source-based NativeAOT publishing and final linking still require CI/platform validation; the Windows development host has not installed .NET 10 or compiled these C# changes locally.
 
 ## Related projects
 

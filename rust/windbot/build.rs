@@ -10,6 +10,14 @@ use std::{
 
 fn main() -> Result<(), Box<dyn Error>> {
 	println!("cargo:rerun-if-env-changed=WINDBOT_NATIVE_DIR");
+	println!("cargo:rerun-if-env-changed=WINDBOT_NATIVE_ARCHIVE");
+	println!("cargo:rerun-if-env-changed=WINDBOT_DOTNET");
+	println!("cargo:rerun-if-env-changed=WINDBOT_CPP_COMPILER");
+	println!("cargo:rerun-if-env-changed=WINDBOT_CPP_LIB_CREATOR");
+	println!("cargo:rerun-if-env-changed=WINDBOT_SYSROOT");
+	println!("cargo:rerun-if-env-changed=ANDROID_NDK_HOME");
+	println!("cargo:rerun-if-env-changed=ANDROID_NDK_ROOT");
+	println!("cargo:rerun-if-env-changed=DOTNET_ROOT");
 	println!("cargo:rerun-if-env-changed=SDKROOT");
 	println!("cargo:rerun-if-env-changed=AR");
 	println!("cargo:rerun-if-env-changed=TARGET_AR");
@@ -31,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 		"armv7-linux-androideabi" => "linux-bionic-arm",
 		"aarch64-linux-android" => "linux-bionic-arm64",
 		"x86_64-linux-android" => "linux-bionic-x64",
-		_ => return Err(format!("No CI NativeAOT artifact is available for Rust target {target}.").into()),
+		_ => return Err(format!("No WindBot NativeAOT RID is configured for Rust target {target}.").into()),
 	};
 	let windows: bool = rid.starts_with("win-");
 	let apple: bool = target.contains("-apple-");
@@ -47,11 +55,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 	let output: PathBuf = PathBuf::from(env::var_os("OUT_DIR").ok_or("Missing OUT_DIR")?);
 	let package: PathBuf = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").ok_or("Missing CARGO_MANIFEST_DIR")?);
 	let native_override: Option<OsString> = env::var_os("WINDBOT_NATIVE_DIR");
+	let archive_override: Option<OsString> = env::var_os("WINDBOT_NATIVE_ARCHIVE");
+	let watch_native_inputs: bool = native_override.is_some();
 	let native: PathBuf = match native_override {
 		Some(path) => PathBuf::from(path).canonicalize()?,
-		None => {
-			let archive: PathBuf = package.join(format!("../../windbot-{rid}-static.zip")).canonicalize()
-				.map_err(|error: std::io::Error| format!("Place windbot-{rid}-static.zip in the repository root or set WINDBOT_NATIVE_DIR to an extracted artifact: {error}"))?;
+		None if archive_override.is_some() => {
+			let archive: PathBuf = PathBuf::from(archive_override.ok_or("Missing WINDBOT_NATIVE_ARCHIVE")?).canonicalize()?;
 			println!("cargo:rerun-if-changed={}", archive.display());
 			let archive_bytes: Vec<u8> = fs::read(&archive)?;
 			let mut hasher: DefaultHasher = DefaultHasher::new();
@@ -65,14 +74,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 			}
 			extracted
 		}
+		None => build_from_source(&package, &output, rid, &host)?,
 	};
 	let rid_path: PathBuf = native.join("native-rid.txt");
-	println!("cargo:rerun-if-changed={}", rid_path.display());
+	if watch_native_inputs {
+		println!("cargo:rerun-if-changed={}", rid_path.display());
+	}
 	if rid_path.exists() && fs::read_to_string(&rid_path)?.trim() != rid {
 		return Err(format!("The artifact's native-rid.txt does not match {rid}.").into());
 	}
 	let manifest_path: PathBuf = native.join("native-dependencies.txt");
-	println!("cargo:rerun-if-changed={}", manifest_path.display());
+	if watch_native_inputs {
+		println!("cargo:rerun-if-changed={}", manifest_path.display());
+	}
 	let manifest: String = fs::read_to_string(&manifest_path)?;
 	let windbot_filename: &str = if windows { "WindBot.lib" } else { "WindBot.a" };
 	let windbot: PathBuf = native.join(windbot_filename);
@@ -87,7 +101,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 	// Bundle native libraries into the rlib so downstream crates inherit them.
 	// Whole-archive retains WindBot's module data and native initialization objects.
-	println!("cargo:rerun-if-changed={}", windbot.display());
+	if watch_native_inputs {
+		println!("cargo:rerun-if-changed={}", windbot.display());
+	}
 	fs::copy(&windbot, output.join(if windows { "windbot_native.lib" } else { "libwindbot_native.a" }))?;
 	println!("cargo:rustc-link-lib=static:+whole-archive=windbot_native");
 
@@ -117,7 +133,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 				return Err(format!("Unsupported native dependency: {line}").into());
 			}
 			let source: PathBuf = native.join(relative);
-			println!("cargo:rerun-if-changed={}", source.display());
+			if watch_native_inputs {
+				println!("cargo:rerun-if-changed={}", source.display());
+			}
 			let filename: &str = relative.file_name().and_then(|name: &OsStr| name.to_str()).ok_or("Invalid dependency filename")?;
 			if filename.ends_with(".obj") || filename.ends_with(".o") {
 				if line != bootstrapper_name {
@@ -164,6 +182,114 @@ fn main() -> Result<(), Box<dyn Error>> {
 		println!("cargo:rustc-link-search=framework={}", sdk.join("System/Library/Frameworks").display());
 	}
 	Ok(())
+}
+
+fn build_from_source(package: &Path, output: &Path, rid: &str, host: &str) -> Result<PathBuf, Box<dyn Error>> {
+	let mut inputs: Vec<PathBuf> = Vec::new();
+	for entry in fs::read_dir(package)? {
+		let entry: fs::DirEntry = entry?;
+		let path: PathBuf = entry.path();
+		let extension: &str = path.extension().and_then(|value: &OsStr| value.to_str()).unwrap_or("");
+		if path.is_file() && matches!(extension, "cs" | "csproj" | "config") {
+			println!("cargo:rerun-if-changed={}", path.display());
+			inputs.push(path);
+		}
+	}
+	for directory in ["Game", "YGOSharp.Network", "YGOSharp.OCGWrapper", "YGOSharp.OCGWrapper.Enums", "Properties", "Decks", "Dialogs", "native"] {
+		println!("cargo:rerun-if-changed={}", package.join(directory).display());
+		collect_input_files(&package.join(directory), &mut inputs)?;
+	}
+	let publish: PathBuf = output.join("native-built");
+	let dotnet: OsString = env::var_os("WINDBOT_DOTNET").unwrap_or_else(|| OsString::from("dotnet"));
+	let mut command: Command = Command::new(dotnet);
+	command.current_dir(package)
+		.arg("publish").arg(package.join("WindBot.csproj"))
+		.args(["-c", "Release", "-r", rid, "-p:NativeLib=Static"])
+		.arg("--artifacts-path").arg(output.join("dotnet"))
+		.arg("-o").arg(&publish);
+	if rid.starts_with("linux-bionic-") {
+		let ndk: OsString = env::var_os("ANDROID_NDK_HOME").or_else(|| env::var_os("ANDROID_NDK_ROOT"))
+			.ok_or("Android source builds require ANDROID_NDK_HOME or ANDROID_NDK_ROOT.")?;
+		let prebuilt: &str = if host.contains("-windows-") { "windows-x86_64" } else if host.contains("-apple-") { "darwin-x86_64" } else { "linux-x86_64" };
+		let toolchain: PathBuf = PathBuf::from(ndk).join("toolchains/llvm/prebuilt").join(prebuilt);
+		let suffix: &str = if host.contains("-windows-") { ".exe" } else { "" };
+		let compiler: PathBuf = toolchain.join(format!("bin/clang{suffix}"));
+		let archiver: PathBuf = toolchain.join(format!("bin/llvm-ar{suffix}"));
+		if !compiler.is_file() || !archiver.is_file() || !toolchain.join("sysroot").is_dir() {
+			return Err(format!("Incomplete Android NDK toolchain: {}", toolchain.display()).into());
+		}
+		command.arg(format!("-p:CppCompilerAndLinker={}", compiler.display()))
+			.arg(format!("-p:CppLibCreator={}", archiver.display()))
+			.arg(format!("-p:SysRoot={}", toolchain.join("sysroot").display()));
+	}
+	for (key, property) in [
+		("WINDBOT_CPP_COMPILER", "CppCompilerAndLinker"),
+		("WINDBOT_CPP_LIB_CREATOR", "CppLibCreator"),
+		("WINDBOT_SYSROOT", "SysRoot"),
+	] {
+		let value: Option<OsString> = env::var_os(key);
+		if let Some(value) = value {
+			let mut argument: OsString = OsString::from(format!("-p:{property}="));
+			argument.push(value);
+			command.arg(argument);
+		}
+	}
+	let mut hasher: DefaultHasher = DefaultHasher::new();
+	inputs.sort();
+	for input in inputs {
+		input.strip_prefix(package)?.hash(&mut hasher);
+		fs::read(input)?.hash(&mut hasher);
+	}
+	command.get_program().hash(&mut hasher);
+	for argument in command.get_args() {
+		argument.hash(&mut hasher);
+	}
+	for key in ["DOTNET_ROOT", "SDKROOT", "ANDROID_NDK_HOME", "ANDROID_NDK_ROOT"] {
+		env::var_os(key).hash(&mut hasher);
+	}
+	let fingerprint: String = format!("{:016x}", hasher.finish());
+	let fingerprint_path: PathBuf = publish.join(".windbot-source-fingerprint");
+	if fs::read_to_string(&fingerprint_path).ok().as_deref() == Some(fingerprint.as_str())
+		&& native_outputs_exist(&publish, rid)
+	{
+		eprintln!("Reusing cached WindBot NativeAOT output for {rid}; source inputs and compiler settings are unchanged.");
+		return Ok(publish);
+	}
+	eprintln!("Compiling bundled WindBot C# sources for {rid} with .NET NativeAOT.");
+	run(&mut command).map_err(|error: Box<dyn Error>| format!("WindBot NativeAOT publish failed. Install the .NET 10 SDK and the native toolchain for {rid}, or set WINDBOT_NATIVE_DIR to a matching prebuilt artifact. {error}"))?;
+	fs::write(publish.join("native-rid.txt"), format!("{rid}\n"))?;
+	if !native_outputs_exist(&publish, rid) {
+		return Err("NativeAOT publish did not produce a complete static library and dependency set.".into());
+	}
+	fs::write(fingerprint_path, fingerprint)?;
+	Ok(publish)
+}
+
+fn collect_input_files(directory: &Path, files: &mut Vec<PathBuf>) -> Result<(), Box<dyn Error>> {
+	for entry in fs::read_dir(directory)? {
+		let entry: fs::DirEntry = entry?;
+		let path: PathBuf = entry.path();
+		if entry.file_type()?.is_dir() {
+			collect_input_files(&path, files)?;
+		} else if entry.file_type()?.is_file() {
+			files.push(path);
+		}
+	}
+	Ok(())
+}
+
+fn native_outputs_exist(directory: &Path, rid: &str) -> bool {
+	let library: &str = if rid.starts_with("win-") { "WindBot.lib" } else { "WindBot.a" };
+	let bootstrapper: &str = if rid.starts_with("win-") { "runtime/bootstrapperdll.obj" } else { "runtime/libbootstrapperdll.o" };
+	let dependencies: Option<String> = fs::read_to_string(directory.join("native-dependencies.txt")).ok();
+	directory.join(library).is_file()
+		&& directory.join(bootstrapper).is_file()
+		&& fs::read_to_string(directory.join("native-rid.txt")).map(|value: String| value.trim() == rid).unwrap_or(false)
+		&& dependencies.map(|value: String| {
+			value.lines().any(|line: &str| line.trim() == bootstrapper)
+				&& value.lines().map(str::trim).filter(|line: &&str| line.starts_with("runtime/"))
+				.all(|line: &str| directory.join(line).is_file())
+		}).unwrap_or(false)
 }
 
 fn archive_object(source: &Path, output: &Path, target: &str, windows: bool, library: &str) -> Result<(), Box<dyn Error>> {

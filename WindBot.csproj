@@ -22,7 +22,7 @@
     <PublishAotUsingRuntimePack>true</PublishAotUsingRuntimePack>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="BotWrapper/**/*.cs;ThirdParty/**/*.cs;artifacts/**/*.cs" />
+    <Compile Remove="BotWrapper/**/*.cs;ThirdParty/**/*.cs;artifacts/**/*.cs;target/**/*.cs;rust/**/target/**/*.cs;bin/**/*.cs;obj/**/*.cs" />
     <EmbeddedResource Include="Decks/*.ydk" LogicalName="WindBot.Decks.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Dialogs/*.json" LogicalName="WindBot.Dialogs.%(Filename)%(Extension)" WithCulture="false" />
     <None Update="App.config" CopyToOutputDirectory="PreserveNewest" />

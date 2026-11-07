@@ -1,0 +1,48 @@
+[package]
+name = "windbot"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+links = "windbot_native"
+build = "rust/windbot/build.rs"
+description = "Rust bindings with bundled WindBot C# sources and NativeAOT static compilation"
+license = "MIT"
+repository = "https://github.com/jwyxym/windbot"
+readme = "README.md"
+publish = false
+include = [
+	"/Cargo.toml",
+	"/Cargo.lock",
+	"/rust/windbot/build.rs",
+	"/rust/windbot/src/**",
+	"/rust/windbot/examples/**",
+	"/WindBot.csproj",
+	"/*.cs",
+	"/App.config",
+	"/Properties/**",
+	"/Game/**",
+	"/YGOSharp.Network/**",
+	"/YGOSharp.OCGWrapper/**",
+	"/YGOSharp.OCGWrapper.Enums/**",
+	"/Decks/*.ydk",
+	"/Dialogs/*.json",
+	"/native/windbot.h",
+	"/LICENSE",
+	"/README.md",
+]
+
+[lib]
+path = "rust/windbot/src/lib.rs"
+
+[[example]]
+name = "list"
+path = "rust/windbot/examples/list.rs"
+
+[dependencies]
+serde_json = "1.0"
+ygopro_cdb_reader = "0.1.6"
+
+[features]
+default = ["link-native"]
+# Disabling this feature is for cargo check only; FFI symbols remain unresolved.
+link-native = []
