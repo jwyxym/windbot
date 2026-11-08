@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [windbot-rs]
-  pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   publish:
@@ -101,3 +103,60 @@ jobs:
           name: windbot-${{ matrix.rid }}
           path: artifacts/packages/windbot-${{ matrix.rid }}.tar.gz
           if-no-files-found: error
+
+  release:
+    needs: publish
+    if: github.ref == 'refs/heads/windbot-rs'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: windbot-release-latest
+      cancel-in-progress: false
+    steps:
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v6
+        with:
+          pattern: windbot-*
+          path: downloaded
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          shopt -s nullglob
+          static_dirs=(downloaded/windbot-*-static)
+          executables=(downloaded/windbot-*/*.tar.gz)
+          test "${#static_dirs[@]}" -eq 12
+          test "${#executables[@]}" -eq 12
+          mkdir -p release-assets
+          cp "${executables[@]}" release-assets/
+          for directory in "${static_dirs[@]}"; do
+            name="${directory##*/}"
+            (
+              cd "$directory"
+              zip -q -r "$GITHUB_WORKSPACE/release-assets/$name.zip" .
+            )
+          done
+      - name: Publish release-latest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag=release-latest
+          if gh api "repos/$GH_REPO/git/ref/tags/$tag" > /dev/null 2>&1; then
+            gh api --method PATCH "repos/$GH_REPO/git/refs/tags/$tag" \
+              -f sha="$GITHUB_SHA" -F force=true > /dev/null
+          else
+            gh api --method POST "repos/$GH_REPO/git/refs" \
+              -f ref="refs/tags/$tag" -f sha="$GITHUB_SHA" > /dev/null
+          fi
+          printf 'Commit: %s\n\nBuild: %s/%s/actions/runs/%s\n' \
+            "$GITHUB_SHA" "$GITHUB_SERVER_URL" "$GH_REPO" "$GITHUB_RUN_ID" > release-notes.txt
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release edit "$tag" --title 'WindBot latest' \
+              --notes-file release-notes.txt --draft=false --prerelease=false --latest
+          else
+            gh release create "$tag" --verify-tag --title 'WindBot latest' \
+              --notes-file release-notes.txt --latest
+          fi
+          gh release upload "$tag" release-assets/* --clobber
