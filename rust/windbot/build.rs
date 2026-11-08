@@ -158,7 +158,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 				};
 				validate_name(name)?;
 				fs::copy(&source, output.join(filename))?;
-				println!("cargo:rustc-link-lib=static={name}");
+				if rid == "linux-x64" || rid == "linux-arm64" {
+					// GNU ld can scan bundled runtime objects before the separately
+					// whole-archived WindBot object introduces its runtime references.
+					println!("cargo:rustc-link-lib=static:+whole-archive={name}");
+				} else {
+					println!("cargo:rustc-link-lib=static={name}");
+				}
 			}
 		}
 	}
