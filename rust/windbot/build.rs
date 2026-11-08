@@ -165,6 +165,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 	if !has_bootstrapper {
 		return Err("native-dependencies.txt does not list the NativeAOT bootstrapper.".into());
 	}
+	if rid.starts_with("linux-") {
+		// Whole-archive extracts module data, but ELF section GC can still discard it.
+		// NativeAOT's bootstrapper requires the __modules start/stop symbols.
+		println!("cargo:rustc-link-arg=-Wl,-z,nostart-stop-gc");
+	}
 	if apple {
 		let sdk_name: &str = if rid == "ios-arm64" { "iphoneos" } else if rid.starts_with("iossimulator-") { "iphonesimulator" } else { "macosx" };
 		let sdk_override: Option<OsString> = env::var_os("SDKROOT");
