@@ -99,8 +99,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 	validate_architecture(&object, rid)?;
 	println!("cargo:rustc-link-search=native={}", output.display());
 
-	// Bundle native libraries into the rlib so downstream crates inherit them.
-	// Whole-archive retains WindBot's module data and native initialization objects.
+	// Bundle WindBot and initialization objects into the rlib for downstream crates.
+	// Linux runtime archives stay separate to preserve lazy extraction and link order.
 	if watch_native_inputs {
 		println!("cargo:rerun-if-changed={}", windbot.display());
 	}
@@ -159,9 +159,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 				validate_name(name)?;
 				fs::copy(&source, output.join(filename))?;
 				if rid == "linux-x64" || rid == "linux-arm64" {
-					// GNU ld can scan bundled runtime objects before the separately
-					// whole-archived WindBot object introduces its runtime references.
-					println!("cargo:rustc-link-lib=static:+whole-archive={name}");
+					// Emit each runtime archive after WindBot instead of merging its
+					// objects into the earlier rlib. Extract only required members:
+					// Runtime.WorkstationGC and aotminipal contain overlapping symbols.
+					println!("cargo:rustc-link-lib=static:-bundle={name}");
 				} else {
 					println!("cargo:rustc-link-lib=static={name}");
 				}
