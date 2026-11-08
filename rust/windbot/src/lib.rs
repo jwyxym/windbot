@@ -33,7 +33,7 @@ impl Error for WindBotError {}
 
 /// Serializes the supplied cards to JSON and replaces the global card database.
 /// Call before starting bots. Replacement fails while any bot is running.
-pub fn load_cards_json(cards: &Vec<Card>) -> Result<(), WindBotError> {
+pub fn load_cards(cards: &Vec<Card>) -> Result<(), WindBotError> {
 	let json: Vec<u8> = serde_json::to_vec(cards)
 		.map_err(|error: serde_json::Error| WindBotError(error.to_string()))?;
 	let status: i32 = unsafe { ffi::windbot_load_cards(json.as_ptr(), json.len()) };
@@ -41,7 +41,7 @@ pub fn load_cards_json(cards: &Vec<Card>) -> Result<(), WindBotError> {
 }
 
 /// Returns JSON rows [Chinese name, AI name, deck, dialog, level].
-pub fn list_bots_json() -> Result<String, WindBotError> {
+pub fn list_bots() -> Result<String, WindBotError> {
 	let pointer: *mut c_char = unsafe { ffi::windbot_list() };
 	if pointer.is_null() {
 		return Err(last_error());
@@ -51,7 +51,8 @@ pub fn list_bots_json() -> Result<String, WindBotError> {
 
 /// Blocks until the bot disconnects. Run on a worker thread.
 /// None uses {}: localhost:7911, a random Normal AI and its embedded resources.
-/// Card data must already have been loaded with load_cards_json.
+/// Accepts a JSON options object with WindBotInfo field names.
+/// Card data must already have been loaded with load_cards.
 pub fn run(options: Option<&str>) -> Result<(), WindBotError> {
 	let json: &str = options.unwrap_or("{}");
 	let status: i32 = unsafe { ffi::windbot_run(json.as_ptr(), json.len()) };

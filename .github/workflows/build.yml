@@ -1,9 +1,9 @@
-name: NativeAOT static libraries
+name: build
 
 on:
   workflow_dispatch:
   push:
-    branches: [dotnet-native-static]
+    branches: [windbot-rs]
   pull_request:
 
 jobs:
@@ -73,4 +73,31 @@ jobs:
         with:
           name: windbot-${{ matrix.rid }}-static
           path: artifacts/native/${{ matrix.rid }}/
+          if-no-files-found: error
+      - name: Build platform executable
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/artifacts/cargo
+          WINDBOT_NATIVE_DIR: ${{ github.workspace }}/artifacts/native/${{ matrix.rid }}
+          RUSTFLAGS: ${{ startsWith(matrix.rid, 'win-') && '-C target-feature=+crt-static' || '' }}
+        run: cargo build --release --target ${{ matrix.rust-target }} --bin winbot --features cli
+      - name: Package platform executable
+        shell: bash
+        run: |
+          executable=winbot
+          output_name=windbot
+          if [[ '${{ matrix.rid }}' == win-* ]]; then
+            executable=winbot.exe
+            output_name=windbot.exe
+          fi
+          source="artifacts/cargo/${{ matrix.rust-target }}/release/$executable"
+          test -f "$source"
+          mkdir -p artifacts/executable artifacts/packages
+          cp "$source" "artifacts/executable/$output_name"
+          chmod +x "artifacts/executable/$output_name"
+          tar -czf "artifacts/packages/windbot-${{ matrix.rid }}.tar.gz" -C artifacts/executable "$output_name"
+      - name: Upload platform executable
+        uses: actions/upload-artifact@v6
+        with:
+          name: windbot-${{ matrix.rid }}
+          path: artifacts/packages/windbot-${{ matrix.rid }}.tar.gz
           if-no-files-found: error

@@ -1,4 +1,4 @@
-fn main() -> Result<(), windbot::WindBotError> {
-	println!("{}", windbot::list_bots_json()?);
+fn main() -> Result<(), windbot_rs::WindBotError> {
+	println!("{}", windbot_rs::list_bots()?);
 	Ok(())
 }

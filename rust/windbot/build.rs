@@ -195,7 +195,7 @@ fn build_from_source(package: &Path, output: &Path, rid: &str, host: &str) -> Re
 			inputs.push(path);
 		}
 	}
-	for directory in ["Game", "YGOSharp.Network", "YGOSharp.OCGWrapper", "YGOSharp.OCGWrapper.Enums", "Properties", "Decks", "Dialogs", "native"] {
+	for directory in ["Game", "YGOSharp.Network", "YGOSharp.OCGWrapper", "YGOSharp.OCGWrapper.Enums", "Properties", "Decks", "Dialogs"] {
 		println!("cargo:rerun-if-changed={}", package.join(directory).display());
 		collect_input_files(&package.join(directory), &mut inputs)?;
 	}
@@ -266,7 +266,8 @@ fn build_from_source(package: &Path, output: &Path, rid: &str, host: &str) -> Re
 }
 
 fn collect_input_files(directory: &Path, files: &mut Vec<PathBuf>) -> Result<(), Box<dyn Error>> {
-	for entry in fs::read_dir(directory)? {
+	for entry in fs::read_dir(directory)
+		.map_err(|error: std::io::Error| format!("Cannot read source directory {}: {error}", directory.display()))? {
 		let entry: fs::DirEntry = entry?;
 		let path: PathBuf = entry.path();
 		if entry.file_type()?.is_dir() {
@@ -389,7 +390,8 @@ fn validate_name(name: &str) -> Result<(), Box<dyn Error>> {
 fn run(command: &mut Command) -> Result<Output, Box<dyn Error>> {
 	let output: Output = command.output()?;
 	if !output.status.success() {
-		return Err(format!("{command:?} failed: {}", String::from_utf8_lossy(&output.stderr)).into());
+		return Err(format!("{command:?} failed ({}):\n{}\n{}", output.status,
+			String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr)).into());
 	}
 	Ok(output)
 }

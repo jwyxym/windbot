@@ -26,7 +26,6 @@
     <EmbeddedResource Include="Decks/*.ydk" LogicalName="WindBot.Decks.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Dialogs/*.json" LogicalName="WindBot.Dialogs.%(Filename)%(Extension)" WithCulture="false" />
     <None Update="App.config" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="native/windbot.h" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('linux-bionic-'))">
     <LinkerArg Include="-Wl,--undefined-version" />
