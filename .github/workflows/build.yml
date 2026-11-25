@@ -104,8 +104,45 @@ jobs:
           path: artifacts/packages/windbot-${{ matrix.rid }}.tar.gz
           if-no-files-found: error
 
+  alpine:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04, rid: linux-musl-x64, rust-target: x86_64-unknown-linux-musl }
+          - { os: ubuntu-24.04-arm, rid: linux-musl-arm64, rust-target: aarch64-unknown-linux-musl }
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build and verify Alpine
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE:/workspace" -w /workspace \
+            mcr.microsoft.com/dotnet/sdk:10.0-alpine sh -ec '
+              apk add --no-cache rust cargo clang lld build-base linux-headers zlib-dev
+              export CARGO_TARGET_DIR=/workspace/artifacts/cargo
+              cargo check --target ${{ matrix.rust-target }} --all-targets
+              cargo build --release --target ${{ matrix.rust-target }} --bin winbot --example list --features cli
+              ./artifacts/cargo/${{ matrix.rust-target }}/release/examples/list
+              set -- artifacts/cargo/${{ matrix.rust-target }}/debug/build/windbot-rs-*/out/native-built
+              test "$#" -eq 1 && test -d "$1"
+              mkdir -p artifacts/native/${{ matrix.rid }} artifacts/executable artifacts/packages
+              cp -R "$1/." artifacts/native/${{ matrix.rid }}/
+              cp artifacts/cargo/${{ matrix.rust-target }}/release/winbot artifacts/executable/windbot
+              tar -czf artifacts/packages/windbot-${{ matrix.rid }}.tar.gz -C artifacts/executable windbot
+            '
+      - uses: actions/upload-artifact@v6
+        with:
+          name: windbot-${{ matrix.rid }}-static
+          path: artifacts/native/${{ matrix.rid }}/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v6
+        with:
+          name: windbot-${{ matrix.rid }}
+          path: artifacts/packages/windbot-${{ matrix.rid }}.tar.gz
+          if-no-files-found: error
+
   release:
-    needs: publish
+    needs: [publish, alpine]
     if: github.ref == 'refs/heads/windbot-rs'
     runs-on: ubuntu-latest
     permissions:
@@ -125,8 +162,8 @@ jobs:
           shopt -s nullglob
           static_dirs=(downloaded/windbot-*-static)
           executables=(downloaded/windbot-*/*.tar.gz)
-          test "${#static_dirs[@]}" -eq 12
-          test "${#executables[@]}" -eq 12
+          test "${#static_dirs[@]}" -eq 14
+          test "${#executables[@]}" -eq 14
           mkdir -p release-assets
           cp "${executables[@]}" release-assets/
           for directory in "${static_dirs[@]}"; do

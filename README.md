@@ -66,6 +66,7 @@ dotnet publish WindBot.csproj -c Release -r linux-x64 -p:NativeLib=Static -o art
 | Windows | `win-x64`, `win-arm64` | Windows + Visual Studio C++ tools / `WindBot.lib` |
 | macOS | `osx-x64`, `osx-arm64` | macOS + Xcode command line tools / `WindBot.a` |
 | Linux | `linux-x64`, `linux-arm64` | matching Linux host + clang + zlib headers / `WindBot.a` |
+| Alpine Linux | `linux-musl-x64`, `linux-musl-arm64` | matching Alpine host + .NET SDK + clang + zlib headers / `WindBot.a` |
 | Android | `linux-bionic-arm` (`armeabi-v7a`), `linux-bionic-arm64` (`arm64-v8a`), `linux-bionic-x64` (`x86_64`) | Linux + Android NDK clang, llvm-ar and sysroot / `WindBot.a` |
 | iOS | `ios-arm64`, `iossimulator-arm64`, `iossimulator-x64` | macOS + Xcode / `WindBot.a` |
 
@@ -97,7 +98,7 @@ Decks and dialogs are embedded directly by MSBuild. Maintain the AOT-safe factor
 
 ## Rust library
 
-The repository root is a Cargo library package. It includes the C# sources, `.ydk` decks and JSON dialogs; Rust code remains under `rust/windbot`. By default, `build.rs` invokes `dotnet publish -p:NativeLib=Static` for Cargo's `TARGET`, then bundles the native libraries into the Rust library. Building from source requires the .NET 10 SDK and the target's native toolchain; the final application does not require a separate .NET installation. All 12 RIDs in the native CI matrix are mapped:
+The repository root is a Cargo library package. It includes the C# sources, `.ydk` decks and JSON dialogs; Rust code remains under `rust/windbot`. By default, `build.rs` invokes `dotnet publish -p:NativeLib=Static` for Cargo's `TARGET`, then bundles the native libraries into the Rust library. Building from source requires the .NET 10 SDK and the target's native toolchain; the final application does not require a separate .NET installation. The native CI targets are mapped:
 
 | Rust target | Native artifact RID |
 | --- | --- |
@@ -105,6 +106,8 @@ The repository root is a Cargo library package. It includes the C# sources, `.yd
 | `aarch64-pc-windows-msvc` | `win-arm64` |
 | `x86_64-unknown-linux-gnu` | `linux-x64` |
 | `aarch64-unknown-linux-gnu` | `linux-arm64` |
+| `x86_64-unknown-linux-musl` | `linux-musl-x64` |
+| `aarch64-unknown-linux-musl` | `linux-musl-arm64` |
 | `x86_64-apple-darwin` | `osx-x64` |
 | `aarch64-apple-darwin` | `osx-arm64` |
 | `aarch64-apple-ios` | `ios-arm64` |
@@ -139,7 +142,7 @@ On Linux, runtime archives use `static:-bundle`: they remain in Cargo's build ou
 
 All `.obj` and `.o` dependencies in the manifest (including `bootstrapperdll.obj` and Windows `dllmain.obj`) are checked for the target architecture, archived separately and linked with whole-archive retention so they propagate to consuming Rust crates.
 
-The native CI runs `cargo check --all-targets` for every target; its build script compiles the bundled C# sources, and CI collects the resulting native artifact from Cargo's output directory. This validates source compilation, build-script execution and Rust source, not the final executable link. The `list` example calls into NativeAOT and is provided for final-link/runtime verification. `cargo check --no-default-features --all-targets` checks Rust source without compiling C# or linking native artifacts; do not disable default features in a real application. Source-based NativeAOT publishing and final linking still require CI/platform validation; the Windows development host has not installed .NET 10 or compiled these C# changes locally.
+The native CI runs `cargo check --all-targets` and builds the executable for every target; its build script compiles the bundled C# sources, and CI collects the resulting native artifact from Cargo's output directory. The Alpine job also builds and runs the `list` example to check NativeAOT initialization. `cargo check --no-default-features --all-targets` checks Rust source without compiling C# or linking native artifacts; do not disable default features in a real application. Each target still requires runtime validation on its platform.
 
 ## Related projects
 

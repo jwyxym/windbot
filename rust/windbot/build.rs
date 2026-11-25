@@ -31,6 +31,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 		"aarch64-pc-windows-msvc" => "win-arm64",
 		"x86_64-unknown-linux-gnu" => "linux-x64",
 		"aarch64-unknown-linux-gnu" => "linux-arm64",
+		"x86_64-unknown-linux-musl" => "linux-musl-x64",
+		"aarch64-unknown-linux-musl" => "linux-musl-arm64",
 		"x86_64-apple-darwin" => "osx-x64",
 		"aarch64-apple-darwin" => "osx-arm64",
 		"aarch64-apple-ios" => "ios-arm64",
@@ -158,7 +160,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 				};
 				validate_name(name)?;
 				fs::copy(&source, output.join(filename))?;
-				if rid == "linux-x64" || rid == "linux-arm64" {
+				if rid == "linux-x64" || rid == "linux-arm64" || rid == "linux-musl-x64" || rid == "linux-musl-arm64" {
 					// Emit each runtime archive after WindBot instead of merging its
 					// objects into the earlier rlib. Extract only required members:
 					// Runtime.WorkstationGC and aotminipal contain overlapping symbols.
