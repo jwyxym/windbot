@@ -37,6 +37,14 @@ Contributor guidance for creating and modifying deck AIs is available in `AGENTS
 
 Server mode exposes an HTTP endpoint that starts a bot for each valid request. Example:
 
+The Rust `winbot` executable reads the CDB before starting the server:
+
+```sh
+./winbot ServerMode=True ServerPort=2399 CardDataPath=cards.cdb
+```
+
+`ServerPort` defaults to `2399`. Each accepted request starts a separate bot thread. The Rust library also exposes the blocking `serve(port)` function; call `load_cards` first.
+
 ```text
 http://127.0.0.1:2399/?name=%E2%91%A8&deck=Blue-Eyes&host=127.0.0.1&port=7911&dialog=cirno.zh-CN
 ```

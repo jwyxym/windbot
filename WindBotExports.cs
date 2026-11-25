@@ -18,6 +18,7 @@ namespace WindBot
     {
         private static readonly object Sync = new object();
         private static int _runningBots;
+        private static bool _serverRunning;
         private static bool _initialized;
         [ThreadStatic]
         private static string _lastError;
@@ -30,7 +31,7 @@ namespace WindBot
             {
                 lock (Sync)
                 {
-                    if (_runningBots != 0)
+                    if (_runningBots != 0 || _serverRunning)
                         throw new InvalidOperationException("Cannot replace card data while bots are running.");
                     EnsureRuntime();
                     NamedCardsManager.InitJson(CopyInput(json, length));
@@ -42,6 +43,46 @@ namespace WindBot
             {
                 _lastError = ex.Message;
                 return 1;
+            }
+        }
+
+        [UnmanagedCallersOnly(EntryPoint = "windbot_serve", CallConvs = new[] { typeof(CallConvCdecl) })]
+        public static int Serve(int port)
+        {
+            bool registered = false;
+            try
+            {
+                if (port < 1 || port > 65535)
+                    throw new ArgumentException("Invalid server port.");
+                lock (Sync)
+                {
+                    if (!NamedCardsManager.IsInitialized)
+                        throw new InvalidOperationException("Call windbot_load_cards before windbot_serve.");
+                    if (_serverRunning || _runningBots != 0)
+                        throw new InvalidOperationException("Cannot start server mode while another server or bot is running.");
+                    _serverRunning = true;
+                    Program.ServerMode = true;
+                    registered = true;
+                }
+                Program.RunAsServer(port);
+                _lastError = null;
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                _lastError = ex.Message;
+                return 1;
+            }
+            finally
+            {
+                if (registered)
+                {
+                    lock (Sync)
+                    {
+                        Program.ServerMode = false;
+                        _serverRunning = false;
+                    }
+                }
             }
         }
 
@@ -58,6 +99,8 @@ namespace WindBot
                 {
                     if (!NamedCardsManager.IsInitialized)
                         throw new InvalidOperationException("Call windbot_load_cards before windbot_run.");
+                    if (_serverRunning)
+                        throw new InvalidOperationException("Cannot start a standalone bot while server mode is running.");
                     if (info.Deck != null && !DecksManager.HasDeck(info.Deck))
                         throw new ArgumentException("Unknown deck: " + info.Deck);
                     _runningBots++;
@@ -79,6 +122,21 @@ namespace WindBot
                     lock (Sync)
                         _runningBots--;
                 }
+            }
+        }
+
+        internal static void RunServerBot(WindBotInfo info)
+        {
+            lock (Sync)
+                _runningBots++;
+            try
+            {
+                Program.RunBot(info);
+            }
+            finally
+            {
+                lock (Sync)
+                    _runningBots--;
             }
         }
 

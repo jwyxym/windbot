@@ -71,7 +71,7 @@ namespace WindBot
             Run(Info);
         }
 
-        private static void RunAsServer(int ServerPort)
+        internal static void RunAsServer(int ServerPort)
         {
             using (HttpListener MainServer = new HttpListener())
             {
@@ -154,7 +154,7 @@ namespace WindBot
 
         private static void Run(object o)
         {
-            RunBot((WindBotInfo)o);
+            WindBotExports.RunServerBot((WindBotInfo)o);
         }
 
         internal static int RunBot(WindBotInfo info)

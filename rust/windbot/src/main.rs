@@ -5,7 +5,7 @@ use std::{
 	error::Error,
 	io::{Error as IoError, ErrorKind},
 };
-use windbot_rs::{load_cards, run};
+use windbot_rs::{load_cards, run, serve};
 use ygopro_cdb_reader::{Card, path};
 
 #[tokio::main]
@@ -14,6 +14,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 	let mut database_path: &str = "cards.cdb";
 	let mut seen: HashSet<String> = HashSet::new();
 	let mut options: Map<String, Value> = Map::new();
+	let mut server_mode: bool = false;
+	let mut server_port: i32 = 2399;
 	for argument in &args {
 		let (key, value): (&str, &str) = argument.split_once('=').ok_or_else(|| {
 			IoError::new(ErrorKind::InvalidInput, format!("参数缺少 '='：{argument}"))
@@ -36,6 +38,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
 			database_path = value;
 			continue;
 		}
+		if key == "SERVERMODE" {
+			server_mode = if value.eq_ignore_ascii_case("true") {
+				true
+			} else if value.eq_ignore_ascii_case("false") {
+				false
+			} else {
+				return Err(IoError::new(ErrorKind::InvalidInput, "ServerMode 必须为 True 或 False").into());
+			};
+			continue;
+		}
+		if key == "SERVERPORT" {
+			server_port = value.parse::<i32>()?;
+			if !(1..=65535).contains(&server_port) {
+				return Err(IoError::new(ErrorKind::InvalidInput, "ServerPort 必须在 1 到 65535 之间").into());
+			}
+			continue;
+		}
 		let field: &str = match key.as_str() {
 			"NAME" => "Name",
 			"DECK" => "Deck",
@@ -48,7 +67,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 			"HAND" => "Hand",
 			"DEBUG" => "Debug",
 			"CHAT" => "Chat",
-			"CONFIG" | "SERVERMODE" | "SERVERPORT" => {
+			"CONFIG" => {
 				return Err(IoError::new(
 					ErrorKind::InvalidInput,
 					format!("当前单机器人入口不支持参数：{key}"),
@@ -85,6 +104,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 	let json: String = serde_json::to_string(&options)?;
 	let cards: Vec<Card> = path(database_path).await?;
 	load_cards(&cards)?;
-	run(Some(&json))?;
+	if server_mode {
+		serve(server_port)?;
+	} else {
+		run(Some(&json))?;
+	}
 	Ok(())
 }

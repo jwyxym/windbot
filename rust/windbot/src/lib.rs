@@ -14,6 +14,7 @@ mod ffi {
 	unsafe extern "C" {
 		pub fn windbot_load_cards(json: *const u8, length: usize) -> i32;
 		pub fn windbot_run(json: *const u8, length: usize) -> i32;
+		pub fn windbot_serve(port: i32) -> i32;
 		pub fn windbot_list() -> *mut c_char;
 		pub fn windbot_last_error() -> *mut c_char;
 		pub fn windbot_free(value: *mut c_void);
@@ -56,6 +57,12 @@ pub fn list_bots() -> Result<String, WindBotError> {
 pub fn run(options: Option<&str>) -> Result<(), WindBotError> {
 	let json: &str = options.unwrap_or("{}");
 	let status: i32 = unsafe { ffi::windbot_run(json.as_ptr(), json.len()) };
+	check_status(status)
+}
+
+/// Starts the HTTP server and blocks while it is running. Card data must already be loaded.
+pub fn serve(port: i32) -> Result<(), WindBotError> {
+	let status: i32 = unsafe { ffi::windbot_serve(port) };
 	check_status(status)
 }
 
