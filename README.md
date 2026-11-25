@@ -108,6 +108,8 @@ The repository root is a Cargo library package. It includes the C# sources, `.yd
 | `aarch64-unknown-linux-gnu` | `linux-arm64` |
 | `x86_64-unknown-linux-musl` | `linux-musl-x64` |
 | `aarch64-unknown-linux-musl` | `linux-musl-arm64` |
+| `x86_64-alpine-linux-musl` | `linux-musl-x64` |
+| `aarch64-alpine-linux-musl` | `linux-musl-arm64` |
 | `x86_64-apple-darwin` | `osx-x64` |
 | `aarch64-apple-darwin` | `osx-arm64` |
 | `aarch64-apple-ios` | `ios-arm64` |
@@ -142,7 +144,7 @@ On Linux, runtime archives use `static:-bundle`: they remain in Cargo's build ou
 
 All `.obj` and `.o` dependencies in the manifest (including `bootstrapperdll.obj` and Windows `dllmain.obj`) are checked for the target architecture, archived separately and linked with whole-archive retention so they propagate to consuming Rust crates.
 
-The native CI runs `cargo check --all-targets` and builds the executable for every target; its build script compiles the bundled C# sources, and CI collects the resulting native artifact from Cargo's output directory. The Alpine job also builds and runs the `list` example to check NativeAOT initialization. `cargo check --no-default-features --all-targets` checks Rust source without compiling C# or linking native artifacts; do not disable default features in a real application. Each target still requires runtime validation on its platform.
+The native CI runs `cargo check --all-targets` and builds the executable for every target; its build script compiles the bundled C# sources, and CI collects the resulting native artifact from Cargo's output directory. The Alpine job uses Alpine's packaged Rust toolchain and its `*-alpine-linux-musl` targets, and also builds and runs the `list` example to check NativeAOT initialization. The `*-unknown-linux-musl` mappings are available for the official Rust toolchain but are not exercised by that job. `cargo check --no-default-features --all-targets` checks Rust source without compiling C# or linking native artifacts; do not disable default features in a real application. Each target still requires runtime validation on its platform.
 
 ## Related projects
 
