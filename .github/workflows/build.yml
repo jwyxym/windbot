@@ -59,18 +59,41 @@ jobs:
       - name: Install Rust target
         run: rustup target add ${{ matrix.rust-target }}
       - name: Check Rust library and compile bundled C# sources
+        shell: bash
         env:
           CARGO_TARGET_DIR: ${{ github.workspace }}/artifacts/cargo
           RUSTFLAGS: ${{ startsWith(matrix.rid, 'win-') && '-C target-feature=+crt-static' || '' }}
-        run: cargo check --target ${{ matrix.rust-target }} --all-targets
+        run: |
+          mkdir -p artifacts
+          cargo check --target ${{ matrix.rust-target }} --all-targets --message-format=json > artifacts/cargo-check.json
       - name: Collect NativeAOT artifact from Cargo output
         shell: bash
+        env:
+          NATIVE_RID: ${{ matrix.rid }}
         run: |
-          shopt -s nullglob
-          native_dirs=(artifacts/cargo/${{ matrix.rust-target }}/debug/build/windbot-*/out/native-built)
-          test "${#native_dirs[@]}" -eq 1
-          mkdir -p artifacts/native/${{ matrix.rid }}
-          cp -R "${native_dirs[0]}/." artifacts/native/${{ matrix.rid }}/
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import shutil
+
+          rid = os.environ['NATIVE_RID']
+          candidates = set()
+          with open('artifacts/cargo-check.json', encoding='utf-8') as messages:
+              for line in messages:
+                  message = json.loads(line)
+                  if message.get('reason') != 'build-script-executed':
+                      continue
+                  native = pathlib.Path(message['out_dir']) / 'native-built'
+                  marker = native / 'native-rid.txt'
+                  if marker.is_file() and marker.read_text(encoding='utf-8').strip() == rid:
+                      candidates.add(native)
+          if len(candidates) != 1:
+              raise SystemExit(f'Expected one NativeAOT output for {rid}; found {len(candidates)}: {sorted(map(str, candidates))}')
+          source = candidates.pop()
+          print(f'Collecting NativeAOT output from {source}')
+          shutil.copytree(source, pathlib.Path('artifacts/native') / rid, dirs_exist_ok=True)
+          PY
       - uses: actions/upload-artifact@v6
         with:
           name: windbot-${{ matrix.rid }}-static
