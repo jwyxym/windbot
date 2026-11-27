@@ -114,6 +114,9 @@ namespace WindBot.Game.AI
             /* 偷摸灵兽幽灵 */
             RegisterDeck("RadiantTyphoon", new DeckInstance("偷摸灵兽幽灵-炽焰", "AI_RadiantTyphoon", (ai, duel) => new RadiantTyphoonExecutor(ai, duel), "Normal", "soyorin.zh-TW"));
             RegisterDeck("ChaosRitual", new DeckInstance("偷摸灵兽幽灵-混沌仪式", "AI_ChaosRitual", (ai, duel) => new ChaosRitualExecutor(ai, duel), "Normal", "soyorin.zh-TW"));
+            RegisterDeck("Ashtra", new DeckInstance("偷摸灵兽幽灵-艮鬼", "AI_Ashtra", (ai, duel) => new AshtraExecutor(ai, duel), "Normal", "soyorin.zh-TW"));
+
+            RegisterDeck("SirokamiDarkMagician", new DeckInstance("白神-黑魔术师", "AI_SirokamiDarkMagician", (ai, duel) => new SirokamiDarkMagicianExecutor(ai, duel), "Normal", "sirokami.zh-CN"));
 
             /* Additional master bots */
             RegisterDeck("Test", new DeckInstance("测试机器人", "AI_Test", (ai, duel) => new DoEverythingExecutor(ai, duel), "Test", "default"));
